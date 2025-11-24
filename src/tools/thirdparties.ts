@@ -79,6 +79,7 @@ export const createThirdPartyTool = {
     type: 'object' as const,
     properties: {
       name: { type: 'string', description: 'Nom du tiers' },
+      code_client: { type: 'string', description: 'Code client (optionnel, -1 pour auto)' },
       client: { type: 'string', description: 'Type: 0=pas client, 1=client, 2=prospect, 3=client+prospect', enum: ['0', '1', '2', '3'] },
       email: { type: 'string', description: 'Email' },
       phone: { type: 'string', description: 'Téléphone' },

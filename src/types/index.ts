@@ -4,14 +4,14 @@ import { z } from 'zod';
 export const ThirdPartySchema = z.object({
   id: z.string(),
   name: z.string(),
-  name_alias: z.string().optional(),
-  code_client: z.string().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  zip: z.string().optional(),
-  town: z.string().optional(),
-  status: z.string().optional(),
+  name_alias: z.string().nullable().optional(),
+  code_client: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  zip: z.string().nullable().optional(),
+  town: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
 }).passthrough(); // Permet les champs supplémentaires de Dolibarr
 
 export const ProposalSchema = z.object({
@@ -49,6 +49,7 @@ export type CreateProposalArgs = z.infer<typeof CreateProposalArgsSchema>;
 // Schémas supplémentaires pour les nouveaux outils
 export const CreateThirdPartyArgsSchema = z.object({
   name: z.string().min(1, 'Le nom du tiers est requis'),
+  code_client: z.string().optional(),
   client: z.enum(['0', '1', '2', '3']).default('1'), // 0=pas client, 1=client, 2=prospect, 3=client+prospect
   email: z.string().email().optional(),
   phone: z.string().optional(),
@@ -72,11 +73,11 @@ export const UpdateThirdPartyArgsSchema = z.object({
 // Contacts
 export const ContactSchema = z.object({
   id: z.string(),
-  firstname: z.string().optional(),
+  firstname: z.string().nullable().optional(),
   lastname: z.string(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  socid: z.string().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  socid: z.string().nullable().optional(),
 }).passthrough();
 
 export const GetContactArgsSchema = z.object({
@@ -237,6 +238,7 @@ export const CreateProjectArgsSchema = z.object({
   title: z.string().min(1, 'Le titre du projet est requis'),
   socid: z.string().optional(),
   description: z.string().optional(),
+  ref: z.string().optional(),
 });
 
 // Tâches
@@ -255,6 +257,7 @@ export const CreateTaskArgsSchema = z.object({
   label: z.string().min(1, 'Le libellé de la tâche est requis'),
   fk_project: z.string().min(1, 'L\'ID du projet est requis'),
   description: z.string().optional(),
+  ref: z.string().optional(),
 });
 
 // Utilisateurs

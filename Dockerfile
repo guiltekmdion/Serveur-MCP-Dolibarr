@@ -34,4 +34,4 @@ RUN addgroup -S mcp && adduser -S mcp -G mcp
 USER mcp
 
 # Entry point
-ENTRYPOINT ["node", "dist/index.js"]
+ENTRYPOINT ["node", "dist/server.js"]
