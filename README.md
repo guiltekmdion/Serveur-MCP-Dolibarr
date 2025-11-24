@@ -10,6 +10,7 @@ Ce serveur permet aux agents IA comme Claude Desktop, ChatGPT (via adaptateur MC
 - **Standardisé** : Utilise le SDK officiel `@modelcontextprotocol/sdk`.
 - **Prêt pour Docker** : Inclut un Dockerfile optimisé et une configuration Compose.
 - **Sécurisé** : Configuration par variables d'environnement, aucun identifiant en dur.
+- **Enrichissement Automatique** : Complète automatiquement les données des entreprises françaises (SIREN, SIRET, NAF, RCS, Adresse) via l'API `api.gouv.fr` lors de la création si l'adresse est manquante.
 
 ## 🛠 Outils Inclus
 
@@ -164,14 +165,17 @@ npx @modelcontextprotocol/inspector node dist/index.js
 
 ```
 src/
-├── config.ts           # Configuration de l'environnement
 ├── server.ts           # Point d'entrée du serveur MCP
 ├── services/
-│   └── dolibarr.ts     # Client API REST Dolibarr
+│   ├── dolibarr.ts     # Client API REST Dolibarr
+│   └── company-search.ts # Service d'enrichissement (api.gouv.fr)
 ├── tools/              # Définitions des outils MCP
 │   ├── thirdparties.ts # Outils de gestion des tiers
-│   └── proposals.ts    # Outils de gestion des propositions
-├── types/              # Définitions TypeScript
+│   ├── proposals.ts    # Outils de gestion des propositions
+│   └── ...
+├── types/              # Définitions TypeScript et Schémas Zod
+└── utils/
+    └── config.ts       # Configuration de l'environnement
 docs/                   # Documentation détaillée
 extras/                 # Scripts et outils supplémentaires
 tests/                  # Tests unitaires
@@ -183,6 +187,14 @@ tests/                  # Tests unitaires
 - [Configuration](./docs/02-configuration.md)
 - [Outils MCP](./docs/03-tools.md)
 - [Déploiement Docker](./docs/04-docker.md)
+- [Exploration API](./docs/API_EXPLORATION.md)
+
+## 👥 Auteurs et Crédits
+
+Ce projet a été initié et développé par **Maxime DION** pour **Guiltek**.
+
+- **Auteur Principal** : Maxime DION
+- **Organisation** : [Guiltek](https://guiltek.com)
 
 ## 📜 Licence
 

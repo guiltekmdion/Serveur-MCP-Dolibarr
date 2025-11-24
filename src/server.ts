@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+/**
+ * Serveur MCP pour Dolibarr
+ * Auteur: Maxime DION (Guiltek)
+ * Site: https://guiltek.com
+ */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {

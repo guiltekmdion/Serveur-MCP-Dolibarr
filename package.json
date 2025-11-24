@@ -24,7 +24,10 @@
     "llm",
     "api"
   ],
-  "author": "Dolibarr Community",
+  "author": "Maxime DION (Guiltek)",
+  "contributors": [
+    "Guiltek <contact@guiltek.com>"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

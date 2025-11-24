@@ -8,25 +8,42 @@ Ce document décrit tous les fichiers du projet et leur rôle.
 dolibarr-mcp-server/
 │
 ├── 📄 README.md                    # Documentation principale
-├── 📄 INSTALL.md                   # Guide d'installation détaillé
-├── 📄 QUICKSTART.md                # Démarrage rapide (10 min)
-├── 📄 WEBHOOK.md                   # Guide des webhooks
-├── 📄 CONTRIBUTING.md              # Guide de contribution
-├── 📄 LICENSE                      # Licence MIT
-├── 📄 PROJECT_STRUCTURE.md         # Ce fichier
+├── 📄 package.json                 # Dépendances et scripts npm
+├── 📄 tsconfig.json                # Configuration TypeScript
+├── 📄 Dockerfile                   # Configuration Docker
+├── 📄 docker-compose.yml           # Orchestration Docker
 │
-├── 🔧 Configuration
-│   ├── package.json                # Dépendances et scripts npm
-│   ├── .env.example                # Template de configuration
-│   ├── .env                        # Configuration (à créer, git-ignoré)
-│   └── .gitignore                  # Fichiers à ignorer par git
+├── 📂 src/                         # Code source TypeScript
+│   ├── 📄 server.ts                # Point d'entrée du serveur MCP
+│   │
+│   ├── 📂 services/                # Services métier
+│   │   ├── 📄 dolibarr.ts          # Client API Dolibarr (Axios)
+│   │   └── 📄 company-search.ts    # Service d'enrichissement (api.gouv.fr)
+│   │
+│   ├── 📂 tools/                   # Définitions des outils MCP
+│   │   ├── 📄 thirdparties.ts      # Gestion des tiers
+│   │   ├── 📄 contacts.ts          # Gestion des contacts
+│   │   ├── 📄 proposals.ts         # Gestion des propositions
+│   │   ├── 📄 orders-invoices...   # Commandes, Factures, Produits
+│   │   └── 📄 advanced.ts          # Documents, Projets, Tâches...
+│   │
+│   ├── 📂 types/                   # Définitions de types
+│   │   └── 📄 index.ts             # Interfaces et Schémas Zod
+│   │
+│   └── 📂 utils/                   # Utilitaires
+│       ├── 📄 config.ts            # Gestion de la configuration (env)
+│       └── 📄 logger.ts            # Système de logs
 │
-├── 🚀 Code source
-│   ├── index.js                    # Serveur MCP principal
-│   └── webhook-server.js           # Serveur webhook HTTP
+├── 📂 docs/                        # Documentation détaillée
+│   ├── 📄 01-installation.md
+│   ├── 📄 02-configuration.md
+│   ├── 📄 03-tools.md
+│   ├── 📄 04-docker.md
+│   └── 📄 API_EXPLORATION.md
 │
-└── 🛠️ Utilitaires
-    └── setup.sh                    # Script d'installation automatique
+└── 📂 tests/                       # Tests d'intégration
+    ├── 📄 dolibarr.test.ts
+    └── 📄 mcp.test.ts
 ```
 
 ---

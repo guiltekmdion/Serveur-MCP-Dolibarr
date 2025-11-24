@@ -1,3 +1,7 @@
+/**
+ * Service Client API Dolibarr
+ * Auteur: Maxime DION (Guiltek)
+ */
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 // @ts-ignore
 import axiosRetry from 'axios-retry';
@@ -89,7 +93,12 @@ export class DolibarrClient {
   private handleError(error: unknown, context: string): never {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
-      const message = error.response?.data?.error?.message || error.message;
+      const data = error.response?.data;
+      const message = data?.error?.message || error.message;
+      
+      // Log full error details for debugging
+      console.error(`[Dolibarr API] Full Error Data in ${context}:`, JSON.stringify(data, null, 2));
+      
       logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
       throw new Error(`Dolibarr API Error (${status}): ${message}`);
     }

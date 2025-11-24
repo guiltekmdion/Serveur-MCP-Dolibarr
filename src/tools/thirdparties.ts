@@ -1,4 +1,5 @@
 import { dolibarrClient } from '../services/dolibarr.js';
+import { searchFrenchCompany } from '../services/company-search.js';
 import { 
   GetThirdPartyArgsSchema, 
   SearchThirdPartiesArgsSchema,
@@ -86,6 +87,10 @@ export const createThirdPartyTool = {
       address: { type: 'string', description: 'Adresse' },
       zip: { type: 'string', description: 'Code postal' },
       town: { type: 'string', description: 'Ville' },
+      idprof1: { type: 'string', description: 'SIREN (optionnel)' },
+      idprof2: { type: 'string', description: 'SIRET (optionnel)' },
+      idprof3: { type: 'string', description: 'NAF/APE (optionnel)' },
+      idprof4: { type: 'string', description: 'RCS/RM (optionnel)' },
     },
     required: ['name'],
   },
@@ -93,6 +98,27 @@ export const createThirdPartyTool = {
 
 export async function handleCreateThirdParty(args: unknown) {
   const validated = CreateThirdPartyArgsSchema.parse(args);
+
+  // Auto-enrichment for French companies if address is missing
+  // We assume it's a French company if country_id is '1' or not specified (default behavior for this feature)
+  if (!validated.address && (!validated.country_id || validated.country_id === '1')) {
+    try {
+      const companyInfo = await searchFrenchCompany(validated.name);
+      if (companyInfo) {
+        validated.address = companyInfo.siege.adresse;
+        validated.zip = companyInfo.siege.code_postal;
+        validated.town = companyInfo.siege.libelle_commune;
+        validated.idprof1 = companyInfo.siren;
+        validated.idprof2 = companyInfo.siege.siret;
+        validated.idprof3 = companyInfo.activite_principale;
+        validated.idprof4 = `RCS ${companyInfo.siege.libelle_commune} ${companyInfo.siren}`;
+        validated.country_id = '1'; // Ensure it is set to France
+      }
+    } catch (e) {
+      // Ignore errors, just proceed with what we have
+    }
+  }
+
   const id = await dolibarrClient.createThirdParty(validated);
   return {
     content: [

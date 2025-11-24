@@ -11,10 +11,6 @@ const rl = createInterface({
 let requestId = 1;
 const pendingRequests = new Map();
 
-docker.stderr.on('data', (data) => {
-  // console.error(`STDERR: ${data}`);
-});
-
 rl.on('line', (line) => {
   if (!line.trim()) return;
   try {
@@ -130,6 +126,48 @@ async function runTests() {
         console.log('✅ Update Thirdparty: Verified (Fields updated successfully)');
     } else {
         console.error('❌ Update Thirdparty: Verification Failed', updatedThirdparty);
+    }
+
+    // Test Auto-Enrichment (France)
+    console.log('\nTesting Auto-Enrichment for French Company...');
+    const enrichmentTestName = "Google France";
+    const enrichmentArgs = {
+      name: enrichmentTestName,
+      client: "1",
+      code_client: "-1"
+    };
+    
+    try {
+      const enrichmentResult = await call("tools/call", {
+        name: "dolibarr_create_thirdparty",
+        arguments: enrichmentArgs
+      });
+      
+      const responseText = enrichmentResult.content[0].text;
+      let enrichmentId;
+      
+      try {
+        const responseJson = JSON.parse(responseText);
+        enrichmentId = responseJson.id;
+        console.log(`✅ Created Enrichment Test Thirdparty ID: ${enrichmentId}`);
+      } catch (e) {
+        console.error(`❌ Failed to parse creation response: ${responseText}`);
+        throw new Error("Creation response was not valid JSON");
+      }
+      
+      const enrichedThirdpartyResult = await call("tools/call", {
+        name: "dolibarr_get_thirdparty",
+        arguments: { id: String(enrichmentId) }
+      });
+      const enrichedThirdparty = JSON.parse(enrichedThirdpartyResult.content[0].text);
+      
+      if (enrichedThirdparty.zip && enrichedThirdparty.town) {
+        console.log(`✅ Auto-Enrichment Verified: Found ZIP ${enrichedThirdparty.zip} and Town ${enrichedThirdparty.town}`);
+      } else {
+        console.error(`❌ Auto-Enrichment Failed: ZIP or Town missing. Got ZIP: ${enrichedThirdparty.zip}, Town: ${enrichedThirdparty.town}`);
+      }
+    } catch (error) {
+      console.error(`❌ Auto-Enrichment Test Failed: ${error}`);
     }
 
     // 3. Contacts

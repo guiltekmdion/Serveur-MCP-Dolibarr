@@ -66,6 +66,38 @@ Trouve-moi tous les tiers qui contiennent "Entreprise" dans leur nom
 
 ---
 
+### `dolibarr_create_thirdparty`
+
+Créer un nouveau tiers (client, prospect ou fournisseur).
+
+**Fonctionnalité Spéciale : Enrichissement Automatique**
+Si vous créez une entreprise française (ou sans pays spécifié) sans fournir d'adresse, le serveur interrogera automatiquement l'API `api.gouv.fr` pour récupérer :
+- L'adresse du siège
+- Le code postal et la ville
+- Les identifiants légaux (SIREN, SIRET, NAF, RCS)
+
+**Paramètres:**
+- `name` (string, obligatoire) : Nom du tiers
+- `client` (string, optionnel) : Type (0=ni client ni prospect, 1=client, 2=prospect, 3=client+prospect)
+- `fournisseur` (string, optionnel) : Type fournisseur (0=non, 1=oui)
+- `email` (string, optionnel) : Email
+- `address` (string, optionnel) : Adresse (si omis, tentative d'enrichissement auto)
+
+**Exemple d'utilisation dans Claude:**
+```
+Crée un nouveau prospect nommé "Google France"
+```
+
+**Réponse:**
+```json
+{
+  "id": "44",
+  "message": "Tiers créé avec succès"
+}
+```
+
+---
+
 ## 📄 Gestion des Propositions Commerciales
 
 ### `dolibarr_create_proposal`

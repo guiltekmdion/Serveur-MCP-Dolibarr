@@ -57,6 +57,10 @@ export const CreateThirdPartyArgsSchema = z.object({
   zip: z.string().optional(),
   town: z.string().optional(),
   country_id: z.string().optional(),
+  idprof1: z.string().optional(), // SIREN
+  idprof2: z.string().optional(), // SIRET
+  idprof3: z.string().optional(), // NAF/APE
+  idprof4: z.string().optional(), // RCS/RM
 });
 
 export const UpdateThirdPartyArgsSchema = z.object({
