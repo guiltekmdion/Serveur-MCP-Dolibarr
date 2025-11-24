@@ -51,7 +51,7 @@ export class DolibarrClient {
   }
 
   private handleError(error: unknown, context: string): never {
-    if (error instanceof AxiosError) {
+    if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.error?.message || error.message;
       console.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
@@ -100,7 +100,7 @@ export class DolibarrClient {
     try {
       const validated = CreateProposalArgsSchema.parse(proposal);
       const response = await this.client.post('/proposals', validated);
-      const id = z.string().parse(response.data);
+      const id = z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
       return id;
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -116,7 +116,7 @@ export class DolibarrClient {
     try {
       const validated = CreateThirdPartyArgsSchema.parse(data);
       const response = await this.client.post('/thirdparties', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createThirdParty');
@@ -160,7 +160,7 @@ export class DolibarrClient {
     try {
       const validated = CreateContactArgsSchema.parse(data);
       const response = await this.client.post('/contacts', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createContact');
@@ -192,7 +192,7 @@ export class DolibarrClient {
     try {
       const { proposal_id, ...lineData } = AddProposalLineArgsSchema.parse(data);
       const response = await this.client.post(`/proposals/${proposal_id}/lines`, lineData);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'addProposalLine');
@@ -240,7 +240,7 @@ export class DolibarrClient {
     try {
       const validated = CreateOrderArgsSchema.parse(data);
       const response = await this.client.post('/orders', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createOrder');
@@ -280,7 +280,7 @@ export class DolibarrClient {
     try {
       const validated = CreateInvoiceArgsSchema.parse(data);
       const response = await this.client.post('/invoices', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createInvoice');
@@ -296,7 +296,7 @@ export class DolibarrClient {
         fk_source: proposalId,
         type: 0
       });
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       this.handleError(error, `createInvoiceFromProposal(${proposalId})`);
     }
@@ -306,7 +306,7 @@ export class DolibarrClient {
     try {
       const { invoice_id, ...paymentData } = RecordInvoicePaymentArgsSchema.parse(data);
       const response = await this.client.post(`/invoices/${invoice_id}/payments`, paymentData);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'recordInvoicePayment');
@@ -355,7 +355,7 @@ export class DolibarrClient {
     try {
       const validated = UploadDocumentArgsSchema.parse(data);
       const response = await this.client.post('/documents/upload', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'uploadDocument');
@@ -387,7 +387,7 @@ export class DolibarrClient {
     try {
       const validated = CreateProjectArgsSchema.parse(data);
       const response = await this.client.post('/projects', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createProject');
@@ -409,7 +409,7 @@ export class DolibarrClient {
     try {
       const validated = CreateTaskArgsSchema.parse(data);
       const response = await this.client.post('/tasks', validated);
-      return z.string().parse(response.data);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'createTask');

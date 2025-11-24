@@ -5,10 +5,20 @@ import {
   CallToolRequestSchema,
   ErrorCode,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { config } from './config.js';
+
+// Import Resources
+import { RESOURCES, handleReadResource } from './resources/index.js';
+
+// Import Prompts
+import { PROMPTS, handleGetPrompt } from './prompts/index.js';
 
 // Import Tiers
 import * as Thirdparties from './tools/thirdparties.js';
@@ -37,11 +47,15 @@ class DolibarrMcpServer {
       {
         capabilities: {
           tools: {},
+          resources: {},
+          prompts: {},
         },
       }
     );
 
     this.setupToolHandlers();
+    this.setupResourceHandlers();
+    this.setupPromptHandlers();
     
     // Error handling
     this.server.onerror = (error) => console.error('[MCP Error]', error);
@@ -187,6 +201,50 @@ class DolibarrMcpServer {
           ],
           isError: true,
         };
+      }
+    });
+  }
+
+  private setupResourceHandlers() {
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: RESOURCES,
+    }));
+
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      try {
+        const content = await handleReadResource(request.params.uri);
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: 'application/json',
+              text: content,
+            },
+          ],
+        };
+      } catch (error: any) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Erreur lors de la lecture de la ressource: ${error.message}`
+        );
+      }
+    });
+  }
+
+  private setupPromptHandlers() {
+    this.server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+      prompts: PROMPTS,
+    }));
+
+    this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      try {
+        const prompt = handleGetPrompt(request.params.name, request.params.arguments);
+        return prompt;
+      } catch (error: any) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Erreur lors de la récupération du prompt: ${error.message}`
+        );
       }
     });
   }
