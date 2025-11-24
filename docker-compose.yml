@@ -1,0 +1,14 @@
+services:
+  dolibarr-mcp:
+    build: .
+    image: dolibarr-mcp-server
+    container_name: dolibarr-mcp
+    stdin_open: true # Required for STDIO
+    tty: true        # Required for STDIO
+    environment:
+      - DOLIBARR_BASE_URL=${DOLIBARR_BASE_URL}
+      - DOLIBARR_API_KEY=${DOLIBARR_API_KEY}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
