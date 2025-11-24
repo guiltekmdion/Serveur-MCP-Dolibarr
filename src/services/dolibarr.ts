@@ -1,6 +1,9 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
+// @ts-ignore
+import axiosRetry from 'axios-retry';
 import { z } from 'zod';
-import { config } from '../config.js';
+import { config } from '../utils/config.js';
+import { logger } from '../utils/logger.js';
 import { 
   ThirdParty, 
   Proposal,
@@ -47,17 +50,50 @@ export class DolibarrClient {
         'DOLAPIKEY': config.DOLIBARR_API_KEY,
         'Accept': 'application/json',
       },
+      timeout: config.AXIOS_TIMEOUT,
     });
+
+    // Configuration du retry automatique
+    (axiosRetry as any)(this.client, { 
+      retries: config.MAX_RETRIES,
+      retryDelay: (axiosRetry as any).exponentialDelay,
+      retryCondition: (error: AxiosError) => {
+        return (axiosRetry as any).isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
+      },
+      onRetry: (retryCount: number, error: AxiosError, requestConfig: AxiosRequestConfig) => {
+        logger.warn(`Tentative de reconnexion #${retryCount} pour ${requestConfig.url}: ${error.message}`);
+      }
+    });
+
+    // Intercepteurs pour le logging
+    this.client.interceptors.request.use(request => {
+      logger.debug(`API Request: ${request.method?.toUpperCase()} ${request.url}`);
+      return request;
+    });
+
+    this.client.interceptors.response.use(
+      response => {
+        logger.debug(`API Response: ${response.status} ${response.config.url}`);
+        return response;
+      },
+      error => {
+        logger.error(`API Error: ${error.message}`, { 
+          url: error.config?.url,
+          status: error.response?.status 
+        });
+        return Promise.reject(error);
+      }
+    );
   }
 
   private handleError(error: unknown, context: string): never {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const message = error.response?.data?.error?.message || error.message;
-      console.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
+      logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
       throw new Error(`Dolibarr API Error (${status}): ${message}`);
     }
-    console.error(`[Dolibarr API] Unexpected error in ${context}:`, error);
+    logger.error(`[Dolibarr API] Unexpected error in ${context}:`, error);
     throw error;
   }
 
@@ -69,7 +105,7 @@ export class DolibarrClient {
       return validated;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('[Dolibarr API] Validation error:', error.format());
+        logger.error('[Dolibarr API] Validation error:', error.format());
         throw new Error(`Données invalides reçues de l'API Dolibarr: ${error.message}`);
       }
       this.handleError(error, `getThirdParty(${id})`);
@@ -89,7 +125,7 @@ export class DolibarrClient {
       return validated;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('[Dolibarr API] Validation error:', error.format());
+        logger.error('[Dolibarr API] Validation error:', error.format());
         throw new Error(`Données invalides reçues de l'API Dolibarr: ${error.message}`);
       }
       this.handleError(error, `searchThirdParties(${query})`);
@@ -104,7 +140,7 @@ export class DolibarrClient {
       return id;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('[Dolibarr API] Validation error:', error.format());
+        logger.error('[Dolibarr API] Validation error:', error.format());
         throw new Error(`Données invalides pour créer la proposition: ${error.message}`);
       }
       this.handleError(error, 'createProposal');

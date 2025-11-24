@@ -12,7 +12,7 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { config } from './config.js';
+import { config } from './utils/config.js';
 
 // Import Resources
 import { RESOURCES, handleReadResource } from './resources/index.js';
