@@ -3,6 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
+import https from 'https';
 // @ts-ignore
 import axiosRetry from 'axios-retry';
 import { z } from 'zod';
@@ -19,6 +20,14 @@ import {
   Task,
   User,
   BankAccount,
+  Warehouse,
+  StockMovement,
+  Shipment,
+  Contract,
+  Ticket,
+  AgendaEvent,
+  ExpenseReport,
+  Intervention,
   ThirdPartySchema,
   ProposalSchema,
   ContactSchema,
@@ -29,6 +38,14 @@ import {
   TaskSchema,
   UserSchema,
   BankAccountSchema,
+  WarehouseSchema,
+  StockMovementSchema,
+  ShipmentSchema,
+  ContractSchema,
+  TicketSchema,
+  AgendaEventSchema,
+  ExpenseReportSchema,
+  InterventionSchema,
   CreateProposalArgs,
   CreateProposalArgsSchema,
   CreateThirdPartyArgsSchema,
@@ -48,6 +65,11 @@ export class DolibarrClient {
   private client: AxiosInstance;
 
   constructor() {
+    // Agent HTTPS pour accepter les certificats auto-signés
+    const httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
+
     this.client = axios.create({
       baseURL: config.DOLIBARR_BASE_URL,
       headers: {
@@ -55,6 +77,7 @@ export class DolibarrClient {
         'Accept': 'application/json',
       },
       timeout: config.AXIOS_TIMEOUT,
+      httpsAgent: httpsAgent,
     });
 
     // Configuration du retry automatique
@@ -100,10 +123,64 @@ export class DolibarrClient {
       console.error(`[Dolibarr API] Full Error Data in ${context}:`, JSON.stringify(data, null, 2));
       
       logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
+      
+      // Messages d'erreur explicites selon le code HTTP
+      if (status === 401) {
+        throw new Error(`Dolibarr API Error (401): Clé API invalide ou expirée. Vérifiez DOLIBARR_API_KEY dans votre configuration.`);
+      }
+      if (status === 403) {
+        // Extraire le module depuis le contexte pour un message plus clair
+        const moduleHint = this.getModuleFromContext(context);
+        throw new Error(`Dolibarr API Error (403): Droits insuffisants pour "${context}". L'utilisateur API n'a pas les permissions sur le module ${moduleHint}. Configurez les droits dans Dolibarr: Configuration → Utilisateurs → [votre utilisateur API] → Permissions.`);
+      }
+      if (status === 404) {
+        throw new Error(`Dolibarr API Error (404): Ressource non trouvée pour "${context}". Vérifiez que l'ID existe.`);
+      }
+      if (status === 500) {
+        throw new Error(`Dolibarr API Error (500): Erreur interne du serveur Dolibarr. ${message}`);
+      }
+      if (status === 501) {
+        const moduleHint = this.getModuleFromContext(context);
+        throw new Error(`Dolibarr API Error (501): Module "${moduleHint}" non activé dans Dolibarr. Activez-le dans Configuration → Modules/Applications.`);
+      }
+      
       throw new Error(`Dolibarr API Error (${status}): ${message}`);
     }
     logger.error(`[Dolibarr API] Unexpected error in ${context}:`, error);
     throw error;
+  }
+
+  // Helper pour extraire le nom du module depuis le contexte
+  private getModuleFromContext(context: string): string {
+    const moduleMap: Record<string, string> = {
+      'warehouse': 'Entrepôts (Stock)',
+      'stock': 'Stock',
+      'shipment': 'Expéditions',
+      'contract': 'Contrats',
+      'ticket': 'Tickets (Support)',
+      'agenda': 'Agenda',
+      'expense': 'Notes de frais',
+      'intervention': 'Interventions (Fichinter)',
+      'thirdpart': 'Tiers',
+      'contact': 'Contacts',
+      'proposal': 'Propositions commerciales',
+      'order': 'Commandes',
+      'invoice': 'Factures',
+      'product': 'Produits/Services',
+      'project': 'Projets',
+      'task': 'Tâches',
+      'user': 'Utilisateurs',
+      'bank': 'Banques',
+      'document': 'Documents'
+    };
+    
+    const contextLower = context.toLowerCase();
+    for (const [key, value] of Object.entries(moduleMap)) {
+      if (contextLower.includes(key)) {
+        return value;
+      }
+    }
+    return context;
   }
 
   async getThirdParty(id: string): Promise<ThirdParty> {
@@ -501,6 +578,259 @@ export class DolibarrClient {
       this.handleError(error, `getBankAccountLines(${id})`);
     }
   }
+
+  // ============================================
+  // NOUVEAUX MODULES - Novembre 2025
+  // ============================================
+
+  // === ENTREPÔTS (Warehouses) ===
+  async listWarehouses(limit?: number): Promise<Warehouse[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/warehouses', { params });
+      return z.array(WarehouseSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listWarehouses');
+    }
+  }
+
+  async getWarehouse(id: string): Promise<Warehouse> {
+    try {
+      const response = await this.client.get(`/warehouses/${id}`);
+      return WarehouseSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getWarehouse(${id})`);
+    }
+  }
+
+  // === MOUVEMENTS DE STOCK (Stock Movements) ===
+  async listStockMovements(productId?: string, warehouseId?: string, limit?: number): Promise<StockMovement[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (productId) params.product_id = productId;
+      if (warehouseId) params.warehouse_id = warehouseId;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/stockmovements', { params });
+      return z.array(StockMovementSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listStockMovements');
+    }
+  }
+
+  async createStockMovement(data: { product_id: string; warehouse_id: string; qty: number; type?: string; label?: string }): Promise<StockMovement> {
+    try {
+      const response = await this.client.post('/stockmovements', data);
+      return StockMovementSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createStockMovement');
+    }
+  }
+
+  // === EXPÉDITIONS (Shipments) ===
+  async listShipments(thirdpartyId?: string, status?: string, limit?: number): Promise<Shipment[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (thirdpartyId) params.thirdparty_id = thirdpartyId;
+      if (status) params.status = status;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/shipments', { params });
+      return z.array(ShipmentSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listShipments');
+    }
+  }
+
+  async getShipment(id: string): Promise<Shipment> {
+    try {
+      const response = await this.client.get(`/shipments/${id}`);
+      return ShipmentSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getShipment(${id})`);
+    }
+  }
+
+  async createShipment(data: { socid: string; origin_id: string; date_delivery?: number }): Promise<Shipment> {
+    try {
+      const response = await this.client.post('/shipments', data);
+      return ShipmentSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createShipment');
+    }
+  }
+
+  // === CONTRATS (Contracts) ===
+  async listContracts(thirdpartyId?: string, status?: string, limit?: number): Promise<Contract[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (thirdpartyId) params.thirdparty_id = thirdpartyId;
+      if (status) params.status = status;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/contracts', { params });
+      return z.array(ContractSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listContracts');
+    }
+  }
+
+  async getContract(id: string): Promise<Contract> {
+    try {
+      const response = await this.client.get(`/contracts/${id}`);
+      return ContractSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getContract(${id})`);
+    }
+  }
+
+  async createContract(data: { socid: string; date_contrat?: number; ref?: string }): Promise<Contract> {
+    try {
+      const response = await this.client.post('/contracts', data);
+      return ContractSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createContract');
+    }
+  }
+
+  // === TICKETS (Support) ===
+  async listTickets(thirdpartyId?: string, status?: string, limit?: number): Promise<Ticket[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (thirdpartyId) params.socid = thirdpartyId;
+      if (status) params.status = status;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/tickets', { params });
+      return z.array(TicketSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listTickets');
+    }
+  }
+
+  async getTicket(id: string): Promise<Ticket> {
+    try {
+      const response = await this.client.get(`/tickets/${id}`);
+      return TicketSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getTicket(${id})`);
+    }
+  }
+
+  async createTicket(data: { subject: string; message: string; fk_soc?: string; type_code?: string; severity_code?: string }): Promise<Ticket> {
+    try {
+      const response = await this.client.post('/tickets', data);
+      return TicketSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createTicket');
+    }
+  }
+
+  // === ÉVÉNEMENTS AGENDA (Agenda Events) ===
+  async listAgendaEvents(thirdpartyId?: string, userId?: string, limit?: number): Promise<AgendaEvent[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (thirdpartyId) params.socid = thirdpartyId;
+      if (userId) params.userownerid = userId;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/agendaevents', { params });
+      return z.array(AgendaEventSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listAgendaEvents');
+    }
+  }
+
+  async getAgendaEvent(id: string): Promise<AgendaEvent> {
+    try {
+      const response = await this.client.get(`/agendaevents/${id}`);
+      return AgendaEventSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getAgendaEvent(${id})`);
+    }
+  }
+
+  async createAgendaEvent(data: { label: string; type_code: string; datep: number; datef?: number; socid?: string; contactid?: string; userownerid?: string }): Promise<AgendaEvent> {
+    try {
+      const response = await this.client.post('/agendaevents', data);
+      return AgendaEventSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createAgendaEvent');
+    }
+  }
+
+  // === NOTES DE FRAIS (Expense Reports) ===
+  async listExpenseReports(userId?: string, status?: string, limit?: number): Promise<ExpenseReport[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (userId) params.user_id = userId;
+      if (status) params.status = status;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/expensereports', { params });
+      return z.array(ExpenseReportSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listExpenseReports');
+    }
+  }
+
+  async getExpenseReport(id: string): Promise<ExpenseReport> {
+    try {
+      const response = await this.client.get(`/expensereports/${id}`);
+      return ExpenseReportSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getExpenseReport(${id})`);
+    }
+  }
+
+  // === INTERVENTIONS (Fichinter) ===
+  async listInterventions(thirdpartyId?: string, status?: string, limit?: number): Promise<Intervention[]> {
+    try {
+      const params: Record<string, any> = {};
+      if (thirdpartyId) params.thirdparty_id = thirdpartyId;
+      if (status) params.status = status;
+      if (limit) params.limit = limit;
+      const response = await this.client.get('/interventions', { params });
+      return z.array(InterventionSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listInterventions');
+    }
+  }
+
+  async getIntervention(id: string): Promise<Intervention> {
+    try {
+      const response = await this.client.get(`/interventions/${id}`);
+      return InterventionSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, `getIntervention(${id})`);
+    }
+  }
+
+  async createIntervention(data: { socid: string; description?: string; datec?: number }): Promise<Intervention> {
+    try {
+      const response = await this.client.post('/interventions', data);
+      return InterventionSchema.parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createIntervention');
+    }
+  }
 }
 
 export const dolibarrClient = new DolibarrClient();
+

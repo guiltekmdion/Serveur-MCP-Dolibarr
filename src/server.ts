@@ -40,6 +40,33 @@ import * as OrdersInvoicesProducts from './tools/orders-invoices-products.js';
 // Import Avancés (Documents, Projets, Tâches, Users, Banques)
 import * as Advanced from './tools/advanced.js';
 
+// ============================================
+// NOUVEAUX MODULES - Novembre 2025
+// ============================================
+// Import Entrepôts
+import * as Warehouses from './tools/warehouses.js';
+
+// Import Stock
+import * as Stock from './tools/stock.js';
+
+// Import Expéditions
+import * as Shipments from './tools/shipments.js';
+
+// Import Contrats
+import * as Contracts from './tools/contracts.js';
+
+// Import Tickets
+import * as Tickets from './tools/tickets.js';
+
+// Import Agenda
+import * as Agenda from './tools/agenda.js';
+
+// Import Notes de Frais
+import * as ExpenseReports from './tools/expensereports.js';
+
+// Import Interventions
+import * as Interventions from './tools/interventions.js';
+
 class DolibarrMcpServer {
   private server: Server;
 
@@ -120,6 +147,25 @@ class DolibarrMcpServer {
         // Banques
         Advanced.listBankAccountsTool,
         Advanced.getBankAccountLinesTool,
+        // ============================================
+        // NOUVEAUX OUTILS - Novembre 2025
+        // ============================================
+        // Entrepôts
+        ...Warehouses.warehouseTools,
+        // Stock
+        ...Stock.stockTools,
+        // Expéditions
+        ...Shipments.shipmentTools,
+        // Contrats
+        ...Contracts.contractTools,
+        // Tickets
+        ...Tickets.ticketTools,
+        // Agenda
+        ...Agenda.agendaTools,
+        // Notes de Frais
+        ...ExpenseReports.expenseReportTools,
+        // Interventions
+        ...Interventions.interventionTools,
       ],
     }));
 
@@ -173,6 +219,38 @@ class DolibarrMcpServer {
           // Banques
           'dolibarr_list_bank_accounts': Advanced.handleListBankAccounts,
           'dolibarr_get_bank_account_lines': Advanced.handleGetBankAccountLines,
+          // ============================================
+          // NOUVEAUX HANDLERS - Novembre 2025
+          // ============================================
+          // Entrepôts
+          'dolibarr_list_warehouses': Warehouses.handleListWarehouses,
+          'dolibarr_get_warehouse': Warehouses.handleGetWarehouse,
+          // Stock
+          'dolibarr_list_stock_movements': Stock.handleListStockMovements,
+          'dolibarr_create_stock_movement': Stock.handleCreateStockMovement,
+          // Expéditions
+          'dolibarr_list_shipments': Shipments.handleListShipments,
+          'dolibarr_get_shipment': Shipments.handleGetShipment,
+          'dolibarr_create_shipment': Shipments.handleCreateShipment,
+          // Contrats
+          'dolibarr_list_contracts': Contracts.handleListContracts,
+          'dolibarr_get_contract': Contracts.handleGetContract,
+          'dolibarr_create_contract': Contracts.handleCreateContract,
+          // Tickets
+          'dolibarr_list_tickets': Tickets.handleListTickets,
+          'dolibarr_get_ticket': Tickets.handleGetTicket,
+          'dolibarr_create_ticket': Tickets.handleCreateTicket,
+          // Agenda
+          'dolibarr_list_agenda_events': Agenda.handleListAgendaEvents,
+          'dolibarr_get_agenda_event': Agenda.handleGetAgendaEvent,
+          'dolibarr_create_agenda_event': Agenda.handleCreateAgendaEvent,
+          // Notes de Frais
+          'dolibarr_list_expense_reports': ExpenseReports.handleListExpenseReports,
+          'dolibarr_get_expense_report': ExpenseReports.handleGetExpenseReport,
+          // Interventions
+          'dolibarr_list_interventions': Interventions.handleListInterventions,
+          'dolibarr_get_intervention': Interventions.handleGetIntervention,
+          'dolibarr_create_intervention': Interventions.handleCreateIntervention,
         };
 
         const handler = toolHandlers[request.params.name];

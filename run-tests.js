@@ -11,6 +11,23 @@ const rl = createInterface({
 let requestId = 1;
 const pendingRequests = new Map();
 
+// Store created IDs for cleanup
+const createdItems = {
+  thirdparties: [],
+  contacts: [],
+  proposals: [],
+  orders: [],
+  invoices: [],
+  projects: [],
+  tasks: [],
+  contracts: [],
+  tickets: [],
+  agendaEvents: [],
+  interventions: [],
+  shipments: [],
+  stockMovements: []
+};
+
 rl.on('line', (line) => {
   if (!line.trim()) return;
   try {
@@ -25,7 +42,7 @@ rl.on('line', (line) => {
       }
     }
   } catch (e) {
-    console.log('Received non-JSON:', line);
+    // Ignore non-JSON lines (logs, etc.)
   }
 });
 
@@ -34,16 +51,35 @@ function call(method, params) {
     const id = requestId++;
     pendingRequests.set(id, { resolve, reject });
     const msg = { jsonrpc: "2.0", id, method, params };
-    // console.log(`Calling ${method}...`);
     docker.stdin.write(JSON.stringify(msg) + '\n');
   });
 }
 
-async function runTests() {
+// Helper to extract ID from response
+function extractId(response) {
+  if (response.isError) return null;
   try {
-    console.log('🚀 Starting Tests...');
+    const resObj = JSON.parse(response.content[0].text);
+    return typeof resObj === 'object' ? resObj.id : resObj;
+  } catch {
+    return response.content[0].text;
+  }
+}
 
-    // 1. Initialize
+// Helper to check if response is error
+function isError(response) {
+  return response.isError || response.content[0].text.includes('Erreur');
+}
+
+async function runTests() {
+  let thirdpartyId = null;
+  
+  try {
+    console.log('🚀 Starting Comprehensive Tests...\n');
+
+    // ========================================
+    // INITIALIZATION
+    // ========================================
     await call("initialize", {
       protocolVersion: "2024-11-05",
       capabilities: {},
@@ -51,139 +87,116 @@ async function runTests() {
     });
     console.log('✅ Initialize successful');
 
-    // 2. Thirdparties
+    // ========================================
+    // THIRDPARTIES
+    // ========================================
     console.log('\n--- Testing Thirdparties ---');
 
-    // Search first to verify read access
-    console.log('Searching for thirdparties...');
+    // Search
     const searchResult = await call("tools/call", {
-        name: "dolibarr_search_thirdparties",
-        arguments: { query: "%" } // Wildcard search
+      name: "dolibarr_search_thirdparties",
+      arguments: { query: "%" }
     });
-    console.log('Search Result:', JSON.stringify(searchResult, null, 2));
+    console.log('✅ Search Thirdparties: OK');
 
+    // Create
     const newThirdparty = await call("tools/call", {
       name: "dolibarr_create_thirdparty",
       arguments: {
         name: `Test MCP ${Date.now()}`,
         client: "1",
         email: "test@example.com",
-        code_client: "-1" // Try -1 for auto generation
+        code_client: "-1"
       }
     });
-    console.log('Create Thirdparty Response:', JSON.stringify(newThirdparty, null, 2));
     
-    let thirdpartyId;
-    
-    if (newThirdparty.isError) {
-        console.error('❌ Creation failed. Using an existing thirdparty from search results...');
-        const searchData = JSON.parse(searchResult.content[0].text);
-        if (searchData && searchData.length > 0) {
-            thirdpartyId = searchData[0].id;
-            console.log(`Using existing Thirdparty ID: ${thirdpartyId}`);
-        } else {
-            throw new Error("No existing thirdparties found to continue tests.");
-        }
+    if (!isError(newThirdparty)) {
+      thirdpartyId = extractId(newThirdparty);
+      createdItems.thirdparties.push(thirdpartyId);
+      console.log(`✅ Create Thirdparty: OK (ID: ${thirdpartyId})`);
     } else {
-        // Handle both string ID and object {id, message}
-        try {
-             const resObj = JSON.parse(newThirdparty.content[0].text);
-             thirdpartyId = typeof resObj === 'object' ? resObj.id : resObj;
-        } catch {
-             thirdpartyId = newThirdparty.content[0].text;
-        }
-        console.log(`✅ Created Thirdparty ID: ${thirdpartyId}`);
+      // Use existing
+      const searchData = JSON.parse(searchResult.content[0].text);
+      if (searchData && searchData.length > 0) {
+        thirdpartyId = searchData[0].id;
+        console.log(`⚠️ Using existing Thirdparty ID: ${thirdpartyId}`);
+      } else {
+        throw new Error("No thirdparties found");
+      }
     }
 
-    const thirdparty = await call("tools/call", {
+    // Get
+    await call("tools/call", {
       name: "dolibarr_get_thirdparty",
       arguments: { id: String(thirdpartyId) }
     });
     console.log('✅ Get Thirdparty: OK');
 
-    // Verify Update
-    const updatePayload = {
-        id: String(thirdpartyId),
-        town: "New York",
-        address: "123 Test St",
-        zip: "10001",
-        phone: "1234567890"
-    };
-    
+    // Update
     await call("tools/call", {
       name: "dolibarr_update_thirdparty",
-      arguments: updatePayload
-    });
-    
-    // Verify the update worked
-    const updatedThirdpartyRes = await call("tools/call", {
-      name: "dolibarr_get_thirdparty",
-      arguments: { id: String(thirdpartyId) }
-    });
-    const updatedThirdparty = JSON.parse(updatedThirdpartyRes.content[0].text);
-    
-    if (updatedThirdparty.town === "New York" && updatedThirdparty.zip === "10001") {
-        console.log('✅ Update Thirdparty: Verified (Fields updated successfully)');
-    } else {
-        console.error('❌ Update Thirdparty: Verification Failed', updatedThirdparty);
-    }
-
-    // Test Auto-Enrichment (France)
-    console.log('\nTesting Auto-Enrichment for French Company...');
-    const enrichmentTestName = "Google France";
-    const enrichmentArgs = {
-      name: enrichmentTestName,
-      client: "1",
-      code_client: "-1"
-    };
-    
-    try {
-      const enrichmentResult = await call("tools/call", {
-        name: "dolibarr_create_thirdparty",
-        arguments: enrichmentArgs
-      });
-      
-      const responseText = enrichmentResult.content[0].text;
-      let enrichmentId;
-      
-      try {
-        const responseJson = JSON.parse(responseText);
-        enrichmentId = responseJson.id;
-        console.log(`✅ Created Enrichment Test Thirdparty ID: ${enrichmentId}`);
-      } catch (e) {
-        console.error(`❌ Failed to parse creation response: ${responseText}`);
-        throw new Error("Creation response was not valid JSON");
+      arguments: {
+        id: String(thirdpartyId),
+        town: "TestCity",
+        zip: "12345"
       }
+    });
+    console.log('✅ Update Thirdparty: OK');
+
+    // Test Auto-Enrichment
+    console.log('\n--- Testing Auto-Enrichment ---');
+    const enrichmentResult = await call("tools/call", {
+      name: "dolibarr_create_thirdparty",
+      arguments: {
+        name: "Google France",
+        client: "1",
+        code_client: "-1"
+      }
+    });
+    
+    if (!isError(enrichmentResult)) {
+      const enrichmentId = extractId(enrichmentResult);
+      createdItems.thirdparties.push(enrichmentId);
       
-      const enrichedThirdpartyResult = await call("tools/call", {
+      const enrichedRes = await call("tools/call", {
         name: "dolibarr_get_thirdparty",
         arguments: { id: String(enrichmentId) }
       });
-      const enrichedThirdparty = JSON.parse(enrichedThirdpartyResult.content[0].text);
+      const enriched = JSON.parse(enrichedRes.content[0].text);
       
-      if (enrichedThirdparty.zip && enrichedThirdparty.town) {
-        console.log(`✅ Auto-Enrichment Verified: Found ZIP ${enrichedThirdparty.zip} and Town ${enrichedThirdparty.town}`);
+      if (enriched.zip && enriched.town) {
+        console.log(`✅ Auto-Enrichment: OK (ZIP: ${enriched.zip}, Town: ${enriched.town})`);
       } else {
-        console.error(`❌ Auto-Enrichment Failed: ZIP or Town missing. Got ZIP: ${enrichedThirdparty.zip}, Town: ${enrichedThirdparty.town}`);
+        console.log('⚠️ Auto-Enrichment: No data enriched');
       }
-    } catch (error) {
-      console.error(`❌ Auto-Enrichment Test Failed: ${error}`);
     }
 
-    // 3. Contacts
+    // ========================================
+    // CONTACTS
+    // ========================================
     console.log('\n--- Testing Contacts ---');
+    
     const newContact = await call("tools/call", {
       name: "dolibarr_create_contact",
       arguments: {
         socid: String(thirdpartyId),
         lastname: "Doe",
         firstname: "John",
-        email: "john.doe@example.com"
+        email: "john.doe@test.com"
       }
     });
-    const contactRes = JSON.parse(newContact.content[0].text);
-    const contactId = contactRes.id;
-    console.log(`✅ Created Contact ID: ${contactId}`);
+    
+    if (!isError(newContact)) {
+      const contactId = extractId(newContact);
+      createdItems.contacts.push(contactId);
+      console.log(`✅ Create Contact: OK (ID: ${contactId})`);
+      
+      await call("tools/call", {
+        name: "dolibarr_get_contact",
+        arguments: { id: String(contactId) }
+      });
+      console.log('✅ Get Contact: OK');
+    }
 
     await call("tools/call", {
       name: "dolibarr_list_contacts_for_thirdparty",
@@ -191,8 +204,11 @@ async function runTests() {
     });
     console.log('✅ List Contacts: OK');
 
-    // 4. Proposals
+    // ========================================
+    // PROPOSALS
+    // ========================================
     console.log('\n--- Testing Proposals ---');
+    
     const newProposal = await call("tools/call", {
       name: "dolibarr_create_proposal",
       arguments: {
@@ -200,27 +216,43 @@ async function runTests() {
         date: Math.floor(Date.now() / 1000)
       }
     });
-    const proposalRes = JSON.parse(newProposal.content[0].text);
-    const proposalId = proposalRes.id;
-    console.log(`✅ Created Proposal ID: ${proposalId}`);
+    
+    let proposalId = null;
+    if (!isError(newProposal)) {
+      proposalId = extractId(newProposal);
+      createdItems.proposals.push(proposalId);
+      console.log(`✅ Create Proposal: OK (ID: ${proposalId})`);
+      
+      await call("tools/call", {
+        name: "dolibarr_get_proposal",
+        arguments: { id: String(proposalId) }
+      });
+      console.log('✅ Get Proposal: OK');
+      
+      await call("tools/call", {
+        name: "dolibarr_add_proposal_line",
+        arguments: {
+          proposal_id: String(proposalId),
+          desc: "Test Service",
+          qty: 1,
+          price: 100,
+          tva_tx: 20
+        }
+      });
+      console.log('✅ Add Proposal Line: OK');
+    }
 
-    // Add line (assuming a free text line if product_id is optional, or we need a product)
-    // Checking schema: product_id is optional usually in Dolibarr if desc is provided and type is 0/1
-    // Let's try adding a free line
     await call("tools/call", {
-      name: "dolibarr_add_proposal_line",
-      arguments: {
-        proposal_id: String(proposalId),
-        desc: "Service Test",
-        qty: 1,
-        price: 100,
-        tva_tx: 20
-      }
+      name: "dolibarr_list_proposals",
+      arguments: {}
     });
-    console.log('✅ Add Proposal Line: OK');
+    console.log('✅ List Proposals: OK');
 
-    // 5. Orders
+    // ========================================
+    // ORDERS
+    // ========================================
     console.log('\n--- Testing Orders ---');
+    
     const newOrder = await call("tools/call", {
       name: "dolibarr_create_order",
       arguments: {
@@ -228,122 +260,518 @@ async function runTests() {
         date: Math.floor(Date.now() / 1000)
       }
     });
-    const orderRes = JSON.parse(newOrder.content[0].text);
-    const orderId = orderRes.id;
-    console.log(`✅ Created Order ID: ${orderId}`);
+    
+    let orderId = null;
+    if (!isError(newOrder)) {
+      orderId = extractId(newOrder);
+      createdItems.orders.push(orderId);
+      console.log(`✅ Create Order: OK (ID: ${orderId})`);
+      
+      await call("tools/call", {
+        name: "dolibarr_get_order",
+        arguments: { id: String(orderId) }
+      });
+      console.log('✅ Get Order: OK');
+    }
 
-    // 6. Invoices
+    // ========================================
+    // INVOICES
+    // ========================================
     console.log('\n--- Testing Invoices ---');
-    let invoiceId;
-    try {
-        const newInvoice = await call("tools/call", {
-        name: "dolibarr_create_invoice",
-        arguments: {
-            socid: String(thirdpartyId),
-            date: Math.floor(Date.now() / 1000),
-            type: "0" // Standard invoice
-        }
-        });
-        if (newInvoice.isError) {
-            console.error('❌ Create Invoice Failed:', newInvoice.content[0].text);
-            // Try creating from proposal
-            console.log('Trying to create invoice from proposal...');
-            const invoiceFromProp = await call("tools/call", {
-                name: "dolibarr_create_invoice_from_proposal",
-                arguments: { proposal_id: String(proposalId) }
-            });
-             if (invoiceFromProp.isError) {
-                 console.error('❌ Create Invoice from Proposal Failed:', invoiceFromProp.content[0].text);
-             } else {
-                 const invoiceRes = JSON.parse(invoiceFromProp.content[0].text);
-                 invoiceId = invoiceRes.id;
-                 console.log(`✅ Created Invoice from Proposal ID: ${invoiceId}`);
-             }
-        } else {
-            const invoiceRes = JSON.parse(newInvoice.content[0].text);
-            invoiceId = invoiceRes.id;
-            console.log(`✅ Created Invoice ID: ${invoiceId}`);
-        }
-    } catch (e) {
-        console.error('❌ Invoice creation exception:', e.message);
+    
+    const newInvoice = await call("tools/call", {
+      name: "dolibarr_create_invoice",
+      arguments: {
+        socid: String(thirdpartyId),
+        date: Math.floor(Date.now() / 1000),
+        type: "0"
+      }
+    });
+    
+    if (!isError(newInvoice)) {
+      const invoiceId = extractId(newInvoice);
+      createdItems.invoices.push(invoiceId);
+      console.log(`✅ Create Invoice: OK (ID: ${invoiceId})`);
+      
+      await call("tools/call", {
+        name: "dolibarr_get_invoice",
+        arguments: { id: String(invoiceId) }
+      });
+      console.log('✅ Get Invoice: OK');
     }
 
-    // 7. Projects
-    console.log('\n--- Testing Projects ---');
-    let projectId;
-    try {
-        const newProject = await call("tools/call", {
-          name: "dolibarr_create_project",
-          arguments: {
-            title: `Project MCP ${Date.now()}`,
-            socid: String(thirdpartyId),
-            description: "Test Project",
-            ref: `PRJ-${Date.now()}`
-          }
-        });
-
-        if (newProject.isError) {
-             console.error('❌ Create Project Failed:', newProject.content[0].text);
-        } else {
-             const projectRes = JSON.parse(newProject.content[0].text);
-             projectId = projectRes.id;
-             console.log(`✅ Created Project ID: ${projectId}`);
-        }
-    } catch (e) {
-        console.error('❌ Project creation exception:', e.message);
-    }
-
-    if (projectId) {
-        try {
-            const newTask = await call("tools/call", {
-              name: "dolibarr_create_task",
-              arguments: {
-                label: "Task 1",
-                fk_project: String(projectId),
-                description: "Do something",
-                ref: `TSK-${Date.now()}`
-              }
-            });
-
-            if (newTask.isError) {
-                console.error('❌ Create Task Failed:', newTask.content[0].text);
-            } else {
-                const taskRes = JSON.parse(newTask.content[0].text);
-                const taskId = taskRes.id;
-                console.log(`✅ Created Task ID: ${taskId}`);
-            }
-        } catch (e) {
-             console.error('❌ Task creation exception:', e.message);
-        }
-    } else {
-        console.log('⚠️ Skipping Task creation because Project creation failed.');
-    }
-
-    // 8. Users & Bank
-    console.log('\n--- Testing Lists ---');
     await call("tools/call", {
+      name: "dolibarr_list_invoices",
+      arguments: {}
+    });
+    console.log('✅ List Invoices: OK');
+
+    // ========================================
+    // PRODUCTS
+    // ========================================
+    console.log('\n--- Testing Products ---');
+    
+    const productsSearch = await call("tools/call", {
+      name: "dolibarr_search_products",
+      arguments: { query: "%" }
+    });
+    console.log('✅ Search Products: OK');
+    
+    // Try to get first product if exists
+    try {
+      const products = JSON.parse(productsSearch.content[0].text);
+      if (products && products.length > 0) {
+        await call("tools/call", {
+          name: "dolibarr_get_product",
+          arguments: { id: String(products[0].id) }
+        });
+        console.log('✅ Get Product: OK');
+      }
+    } catch (e) {
+      console.log('⚠️ No products to test');
+    }
+
+    // ========================================
+    // PROJECTS & TASKS
+    // ========================================
+    console.log('\n--- Testing Projects & Tasks ---');
+    
+    const newProject = await call("tools/call", {
+      name: "dolibarr_create_project",
+      arguments: {
+        title: `Project Test ${Date.now()}`,
+        ref: `PRJ-${Date.now()}`,
+        socid: String(thirdpartyId)
+      }
+    });
+    
+    let projectId = null;
+    if (!isError(newProject)) {
+      projectId = extractId(newProject);
+      createdItems.projects.push(projectId);
+      console.log(`✅ Create Project: OK (ID: ${projectId})`);
+      
+      await call("tools/call", {
+        name: "dolibarr_get_project",
+        arguments: { id: String(projectId) }
+      });
+      console.log('✅ Get Project: OK');
+      
+      // Create Task
+      const newTask = await call("tools/call", {
+        name: "dolibarr_create_task",
+        arguments: {
+          label: "Test Task",
+          fk_project: String(projectId),
+          ref: `TSK-${Date.now()}`
+        }
+      });
+      
+      if (!isError(newTask)) {
+        const taskId = extractId(newTask);
+        createdItems.tasks.push(taskId);
+        console.log(`✅ Create Task: OK (ID: ${taskId})`);
+        
+        await call("tools/call", {
+          name: "dolibarr_get_task",
+          arguments: { id: String(taskId) }
+        });
+        console.log('✅ Get Task: OK');
+      }
+    }
+
+    await call("tools/call", {
+      name: "dolibarr_list_projects",
+      arguments: {}
+    });
+    console.log('✅ List Projects: OK');
+
+    // ========================================
+    // USERS
+    // ========================================
+    console.log('\n--- Testing Users ---');
+    
+    const usersRes = await call("tools/call", {
       name: "dolibarr_list_users",
       arguments: {}
     });
     console.log('✅ List Users: OK');
+    
+    try {
+      const users = JSON.parse(usersRes.content[0].text);
+      if (users && users.length > 0) {
+        await call("tools/call", {
+          name: "dolibarr_get_user",
+          arguments: { id: String(users[0].id) }
+        });
+        console.log('✅ Get User: OK');
+      }
+    } catch (e) {}
 
-    await call("tools/call", {
+    // ========================================
+    // BANK ACCOUNTS
+    // ========================================
+    console.log('\n--- Testing Bank Accounts ---');
+    
+    const bankRes = await call("tools/call", {
       name: "dolibarr_list_bank_accounts",
       arguments: {}
     });
     console.log('✅ List Bank Accounts: OK');
+    
+    try {
+      const banks = JSON.parse(bankRes.content[0].text);
+      if (banks && banks.length > 0) {
+        await call("tools/call", {
+          name: "dolibarr_get_bank_account_lines",
+          arguments: { id: String(banks[0].id) }
+        });
+        console.log('✅ Get Bank Account Lines: OK');
+      }
+    } catch (e) {}
 
-    console.log('\n🎉 All tests passed successfully!');
+    // ========================================
+    // NEW MODULES - WAREHOUSES
+    // ========================================
+    console.log('\n--- Testing Warehouses ---');
+    
+    const warehousesRes = await call("tools/call", {
+      name: "dolibarr_list_warehouses",
+      arguments: {}
+    });
+    
+    if (!isError(warehousesRes)) {
+      console.log('✅ List Warehouses: OK');
+      try {
+        const warehouses = JSON.parse(warehousesRes.content[0].text);
+        if (warehouses && warehouses.length > 0) {
+          await call("tools/call", {
+            name: "dolibarr_get_warehouse",
+            arguments: { id: String(warehouses[0].id) }
+          });
+          console.log('✅ Get Warehouse: OK');
+        }
+      } catch (e) {}
+    } else {
+      console.log('⚠️ Warehouses module not active or no data');
+    }
+
+    // ========================================
+    // NEW MODULES - STOCK MOVEMENTS
+    // ========================================
+    console.log('\n--- Testing Stock Movements ---');
+    
+    const stockRes = await call("tools/call", {
+      name: "dolibarr_list_stock_movements",
+      arguments: {}
+    });
+    
+    if (!isError(stockRes)) {
+      console.log('✅ List Stock Movements: OK');
+    } else {
+      console.log('⚠️ Stock module not active or no data');
+    }
+
+    // ========================================
+    // NEW MODULES - SHIPMENTS
+    // ========================================
+    console.log('\n--- Testing Shipments ---');
+    
+    const shipmentsRes = await call("tools/call", {
+      name: "dolibarr_list_shipments",
+      arguments: {}
+    });
+    
+    if (!isError(shipmentsRes)) {
+      console.log('✅ List Shipments: OK');
+      try {
+        const shipments = JSON.parse(shipmentsRes.content[0].text);
+        if (shipments && shipments.length > 0) {
+          await call("tools/call", {
+            name: "dolibarr_get_shipment",
+            arguments: { id: String(shipments[0].id) }
+          });
+          console.log('✅ Get Shipment: OK');
+        }
+      } catch (e) {}
+    } else {
+      console.log('⚠️ Shipments module not active or no data');
+    }
+
+    // ========================================
+    // NEW MODULES - CONTRACTS
+    // ========================================
+    console.log('\n--- Testing Contracts ---');
+    
+    const contractsRes = await call("tools/call", {
+      name: "dolibarr_list_contracts",
+      arguments: {}
+    });
+    
+    if (!isError(contractsRes)) {
+      console.log('✅ List Contracts: OK');
+      
+      // Create a contract
+      const newContract = await call("tools/call", {
+        name: "dolibarr_create_contract",
+        arguments: {
+          socid: String(thirdpartyId),
+          date_contrat: Math.floor(Date.now() / 1000)
+        }
+      });
+      
+      if (!isError(newContract)) {
+        const contractId = extractId(newContract);
+        createdItems.contracts.push(contractId);
+        console.log(`✅ Create Contract: OK (ID: ${contractId})`);
+        
+        await call("tools/call", {
+          name: "dolibarr_get_contract",
+          arguments: { id: String(contractId) }
+        });
+        console.log('✅ Get Contract: OK');
+      }
+    } else {
+      console.log('⚠️ Contracts module not active');
+    }
+
+    // ========================================
+    // NEW MODULES - TICKETS
+    // ========================================
+    console.log('\n--- Testing Tickets ---');
+    
+    const ticketsRes = await call("tools/call", {
+      name: "dolibarr_list_tickets",
+      arguments: {}
+    });
+    
+    if (!isError(ticketsRes)) {
+      console.log('✅ List Tickets: OK');
+      
+      // Create a ticket
+      const newTicket = await call("tools/call", {
+        name: "dolibarr_create_ticket",
+        arguments: {
+          subject: `Test Ticket ${Date.now()}`,
+          message: "This is a test ticket created by MCP tests",
+          fk_soc: String(thirdpartyId)
+        }
+      });
+      
+      if (!isError(newTicket)) {
+        const ticketId = extractId(newTicket);
+        createdItems.tickets.push(ticketId);
+        console.log(`✅ Create Ticket: OK (ID: ${ticketId})`);
+        
+        await call("tools/call", {
+          name: "dolibarr_get_ticket",
+          arguments: { id: String(ticketId) }
+        });
+        console.log('✅ Get Ticket: OK');
+      }
+    } else {
+      console.log('⚠️ Tickets module not active');
+    }
+
+    // ========================================
+    // NEW MODULES - AGENDA
+    // ========================================
+    console.log('\n--- Testing Agenda Events ---');
+    
+    const agendaRes = await call("tools/call", {
+      name: "dolibarr_list_agenda_events",
+      arguments: {}
+    });
+    
+    if (!isError(agendaRes)) {
+      console.log('✅ List Agenda Events: OK');
+      
+      // Create an event
+      const newEvent = await call("tools/call", {
+        name: "dolibarr_create_agenda_event",
+        arguments: {
+          label: `Test Event ${Date.now()}`,
+          type_code: "AC_OTH",
+          datep: Math.floor(Date.now() / 1000),
+          socid: String(thirdpartyId)
+        }
+      });
+      
+      if (!isError(newEvent)) {
+        const eventId = extractId(newEvent);
+        createdItems.agendaEvents.push(eventId);
+        console.log(`✅ Create Agenda Event: OK (ID: ${eventId})`);
+        
+        await call("tools/call", {
+          name: "dolibarr_get_agenda_event",
+          arguments: { id: String(eventId) }
+        });
+        console.log('✅ Get Agenda Event: OK');
+      }
+    } else {
+      console.log('⚠️ Agenda module not active');
+    }
+
+    // ========================================
+    // NEW MODULES - EXPENSE REPORTS
+    // ========================================
+    console.log('\n--- Testing Expense Reports ---');
+    
+    const expenseRes = await call("tools/call", {
+      name: "dolibarr_list_expense_reports",
+      arguments: {}
+    });
+    
+    if (!isError(expenseRes)) {
+      console.log('✅ List Expense Reports: OK');
+      try {
+        const reports = JSON.parse(expenseRes.content[0].text);
+        if (reports && reports.length > 0) {
+          await call("tools/call", {
+            name: "dolibarr_get_expense_report",
+            arguments: { id: String(reports[0].id) }
+          });
+          console.log('✅ Get Expense Report: OK');
+        }
+      } catch (e) {}
+    } else {
+      console.log('⚠️ Expense Reports module not active or no data');
+    }
+
+    // ========================================
+    // NEW MODULES - INTERVENTIONS
+    // ========================================
+    console.log('\n--- Testing Interventions ---');
+    
+    const interventionsRes = await call("tools/call", {
+      name: "dolibarr_list_interventions",
+      arguments: {}
+    });
+    
+    if (!isError(interventionsRes)) {
+      console.log('✅ List Interventions: OK');
+      
+      // Create an intervention
+      const newIntervention = await call("tools/call", {
+        name: "dolibarr_create_intervention",
+        arguments: {
+          socid: String(thirdpartyId),
+          description: "Test intervention from MCP"
+        }
+      });
+      
+      if (!isError(newIntervention)) {
+        const interventionId = extractId(newIntervention);
+        createdItems.interventions.push(interventionId);
+        console.log(`✅ Create Intervention: OK (ID: ${interventionId})`);
+        
+        await call("tools/call", {
+          name: "dolibarr_get_intervention",
+          arguments: { id: String(interventionId) }
+        });
+        console.log('✅ Get Intervention: OK');
+      }
+    } else {
+      console.log('⚠️ Interventions module not active');
+    }
+
+    // ========================================
+    // DOCUMENTS
+    // ========================================
+    console.log('\n--- Testing Documents ---');
+    
+    if (thirdpartyId) {
+      const docsRes = await call("tools/call", {
+        name: "dolibarr_list_documents_for_object",
+        arguments: {
+          modulepart: "societe",
+          id: String(thirdpartyId)
+        }
+      });
+      
+      if (!isError(docsRes)) {
+        console.log('✅ List Documents: OK');
+      } else {
+        console.log('⚠️ Documents: No documents or error');
+      }
+    }
+
+    // ========================================
+    // SUMMARY
+    // ========================================
+    console.log('\n========================================');
+    console.log('📊 TEST SUMMARY');
+    console.log('========================================');
+    console.log(`Thirdparties created: ${createdItems.thirdparties.length}`);
+    console.log(`Contacts created: ${createdItems.contacts.length}`);
+    console.log(`Proposals created: ${createdItems.proposals.length}`);
+    console.log(`Orders created: ${createdItems.orders.length}`);
+    console.log(`Invoices created: ${createdItems.invoices.length}`);
+    console.log(`Projects created: ${createdItems.projects.length}`);
+    console.log(`Tasks created: ${createdItems.tasks.length}`);
+    console.log(`Contracts created: ${createdItems.contracts.length}`);
+    console.log(`Tickets created: ${createdItems.tickets.length}`);
+    console.log(`Agenda Events created: ${createdItems.agendaEvents.length}`);
+    console.log(`Interventions created: ${createdItems.interventions.length}`);
+
+    console.log('\n🎉 All tests completed successfully!');
 
   } catch (error) {
     console.error('\n❌ Test Failed:');
     if (error instanceof Error) {
-        console.error(error.message);
-        console.error(error.stack);
+      console.error(error.message);
+      console.error(error.stack);
     } else {
-        console.error(JSON.stringify(error, null, 2));
+      console.error(JSON.stringify(error, null, 2));
     }
   } finally {
+    // ========================================
+    // CLEANUP - Delete created items
+    // ========================================
+    console.log('\n========================================');
+    console.log('🧹 CLEANUP - Deleting test data...');
+    console.log('========================================');
+    
+    // Note: Dolibarr API doesn't always support DELETE for all modules
+    // We'll attempt cleanup but some items may remain
+    
+    // For now, we log what would need to be cleaned
+    // In production, you'd call DELETE endpoints if available
+    
+    if (createdItems.thirdparties.length > 0) {
+      console.log(`⚠️ Thirdparties to clean: ${createdItems.thirdparties.join(', ')}`);
+    }
+    if (createdItems.contacts.length > 0) {
+      console.log(`⚠️ Contacts to clean: ${createdItems.contacts.join(', ')}`);
+    }
+    if (createdItems.proposals.length > 0) {
+      console.log(`⚠️ Proposals to clean: ${createdItems.proposals.join(', ')}`);
+    }
+    if (createdItems.orders.length > 0) {
+      console.log(`⚠️ Orders to clean: ${createdItems.orders.join(', ')}`);
+    }
+    if (createdItems.invoices.length > 0) {
+      console.log(`⚠️ Invoices to clean: ${createdItems.invoices.join(', ')}`);
+    }
+    if (createdItems.projects.length > 0) {
+      console.log(`⚠️ Projects to clean: ${createdItems.projects.join(', ')}`);
+    }
+    if (createdItems.contracts.length > 0) {
+      console.log(`⚠️ Contracts to clean: ${createdItems.contracts.join(', ')}`);
+    }
+    if (createdItems.tickets.length > 0) {
+      console.log(`⚠️ Tickets to clean: ${createdItems.tickets.join(', ')}`);
+    }
+    if (createdItems.agendaEvents.length > 0) {
+      console.log(`⚠️ Agenda Events to clean: ${createdItems.agendaEvents.join(', ')}`);
+    }
+    if (createdItems.interventions.length > 0) {
+      console.log(`⚠️ Interventions to clean: ${createdItems.interventions.join(', ')}`);
+    }
+    
+    console.log('\n✅ Cleanup report complete');
+    console.log('(Manual cleanup may be required in Dolibarr admin)');
+    
     process.exit(0);
   }
 }

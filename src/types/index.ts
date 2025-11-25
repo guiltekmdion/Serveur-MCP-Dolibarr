@@ -296,3 +296,227 @@ export type Project = z.infer<typeof ProjectSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type BankAccount = z.infer<typeof BankAccountSchema>;
+
+// ============================================
+// NOUVEAUX MODULES - Novembre 2025
+// ============================================
+
+// === ENTREPÔTS (Warehouses) ===
+export const WarehouseSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  label: z.string().optional(),
+  lieu: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  statut: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListWarehousesArgsSchema = z.object({
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetWarehouseArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'entrepôt est requis'),
+});
+
+export type Warehouse = z.infer<typeof WarehouseSchema>;
+
+// === MOUVEMENTS DE STOCK (Stock Movements) ===
+export const StockMovementSchema = z.object({
+  id: z.string(),
+  product_id: z.string().optional(),
+  warehouse_id: z.string().optional(),
+  qty: z.number().optional(),
+  type: z.string().optional(),
+  label: z.string().nullable().optional(),
+  datem: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListStockMovementsArgsSchema = z.object({
+  product_id: z.string().optional(),
+  warehouse_id: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateStockMovementArgsSchema = z.object({
+  product_id: z.string().min(1, 'L\'ID du produit est requis'),
+  warehouse_id: z.string().min(1, 'L\'ID de l\'entrepôt est requis'),
+  qty: z.number().min(1, 'La quantité est requise'),
+  type: z.enum(['0', '1', '2', '3']).default('0'), // 0=entrée, 1=sortie, 2=transfert+, 3=transfert-
+  label: z.string().optional(),
+});
+
+export type StockMovement = z.infer<typeof StockMovementSchema>;
+
+// === EXPÉDITIONS (Shipments) ===
+export const ShipmentSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  socid: z.string().optional(),
+  origin_id: z.string().nullable().optional(),
+  date_delivery: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListShipmentsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetShipmentArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'expédition est requis'),
+});
+
+export const CreateShipmentArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du tiers est requis'),
+  origin_id: z.string().min(1, 'L\'ID de la commande origine est requis'),
+  date_delivery: z.number().int().positive().optional(),
+});
+
+export type Shipment = z.infer<typeof ShipmentSchema>;
+
+// === CONTRATS (Contracts) ===
+export const ContractSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  socid: z.string().optional(),
+  date_contrat: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListContractsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetContractArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du contrat est requis'),
+});
+
+export const CreateContractArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du tiers est requis'),
+  date_contrat: z.number().int().positive().optional(),
+  ref: z.string().optional(),
+});
+
+export type Contract = z.infer<typeof ContractSchema>;
+
+// === TICKETS (Support) ===
+export const TicketSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  track_id: z.string().nullable().optional(),
+  subject: z.string().optional(),
+  message: z.string().nullable().optional(),
+  fk_soc: z.string().nullable().optional(),
+  fk_statut: z.string().nullable().optional(),
+  type_code: z.string().nullable().optional(),
+  severity_code: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListTicketsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetTicketArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du ticket est requis'),
+});
+
+export const CreateTicketArgsSchema = z.object({
+  subject: z.string().min(1, 'Le sujet est requis'),
+  message: z.string().min(1, 'Le message est requis'),
+  fk_soc: z.string().optional(),
+  type_code: z.string().optional(),
+  severity_code: z.string().optional(),
+});
+
+export type Ticket = z.infer<typeof TicketSchema>;
+
+// === ÉVÉNEMENTS AGENDA (Agenda Events) ===
+export const AgendaEventSchema = z.object({
+  id: z.string(),
+  label: z.string().optional(),
+  datep: z.number().nullable().optional(),
+  datef: z.number().nullable().optional(),
+  type_code: z.string().nullable().optional(),
+  socid: z.string().nullable().optional(),
+  fk_element: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListAgendaEventsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  user_id: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetAgendaEventArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'événement est requis'),
+});
+
+export const CreateAgendaEventArgsSchema = z.object({
+  label: z.string().min(1, 'Le libellé est requis'),
+  type_code: z.string().min(1, 'Le type est requis'), // AC_TEL, AC_RDV, AC_EMAIL...
+  datep: z.number().int().positive('La date de début est requise'),
+  datef: z.number().int().positive().optional(),
+  socid: z.string().optional(),
+  contactid: z.string().optional(),
+  userownerid: z.string().optional(),
+});
+
+export type AgendaEvent = z.infer<typeof AgendaEventSchema>;
+
+// === NOTES DE FRAIS (Expense Reports) ===
+export const ExpenseReportSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  fk_user_author: z.string().optional(),
+  date_debut: z.number().nullable().optional(),
+  date_fin: z.number().nullable().optional(),
+  fk_statut: z.string().nullable().optional(),
+  total_ht: z.number().nullable().optional(),
+  total_ttc: z.number().nullable().optional(),
+}).passthrough();
+
+export const ListExpenseReportsArgsSchema = z.object({
+  user_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetExpenseReportArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la note de frais est requis'),
+});
+
+export type ExpenseReport = z.infer<typeof ExpenseReportSchema>;
+
+// === INTERVENTIONS (Fichinter) ===
+export const InterventionSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  socid: z.string().optional(),
+  description: z.string().nullable().optional(),
+  datec: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListInterventionsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetInterventionArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'intervention est requis'),
+});
+
+export const CreateInterventionArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du tiers est requis'),
+  description: z.string().optional(),
+  datec: z.number().int().positive().optional(),
+});
+
+export type Intervention = z.infer<typeof InterventionSchema>;

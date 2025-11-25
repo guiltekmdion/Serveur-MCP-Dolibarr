@@ -114,25 +114,218 @@ Créer une nouvelle proposition commerciale dans Dolibarr.
 Crée une proposition commerciale pour le client ID 42, datée d'aujourd'hui
 ```
 
-**Réponse:**
-```json
-{
-  "id": "1567",
-  "message": "Proposition créée avec succès"
-}
-```
+---
+
+## 🏭 Gestion des Entrepôts (Warehouses)
+
+### `dolibarr_list_warehouses`
+
+Liste tous les entrepôts disponibles.
+
+**Paramètres:**
+- `limit` (number, optionnel) : Nombre maximum d'entrepôts à retourner
+
+### `dolibarr_get_warehouse`
+
+Récupère les détails d'un entrepôt.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID de l'entrepôt
 
 ---
 
-## 🔮 Outils Futurs (Roadmap)
+## 📦 Gestion des Stocks
 
-Les outils suivants sont prévus pour les prochaines versions :
+### `dolibarr_list_stock_movements`
 
-- `dolibarr_create_invoice` : Créer une facture
-- `dolibarr_get_products` : Lister les produits
-- `dolibarr_create_order` : Créer une commande
-- `dolibarr_get_contacts` : Récupérer les contacts d'un tiers
-- `dolibarr_update_thirdparty` : Mettre à jour un tiers
+Liste les mouvements de stock.
+
+**Paramètres:**
+- `product_id` (string, optionnel) : Filtrer par produit
+- `warehouse_id` (string, optionnel) : Filtrer par entrepôt
+- `limit` (number, optionnel) : Nombre maximum de mouvements
+
+### `dolibarr_create_stock_movement`
+
+Crée un mouvement de stock.
+
+**Paramètres:**
+- `product_id` (string, obligatoire) : ID du produit
+- `warehouse_id` (string, obligatoire) : ID de l'entrepôt
+- `qty` (number, obligatoire) : Quantité
+- `type` (string, optionnel) : Type (0=entrée, 1=sortie, 2=transfert+, 3=transfert-)
+- `label` (string, optionnel) : Libellé du mouvement
+
+---
+
+## 🚚 Gestion des Expéditions
+
+### `dolibarr_list_shipments`
+
+Liste les expéditions.
+
+**Paramètres:**
+- `thirdparty_id` (string, optionnel) : Filtrer par tiers
+- `status` (string, optionnel) : Filtrer par statut
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_shipment`
+
+Récupère les détails d'une expédition.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID de l'expédition
+
+### `dolibarr_create_shipment`
+
+Crée une expédition à partir d'une commande.
+
+**Paramètres:**
+- `socid` (string, obligatoire) : ID du tiers destinataire
+- `origin_id` (string, obligatoire) : ID de la commande d'origine
+- `date_delivery` (number, optionnel) : Date de livraison (timestamp Unix)
+
+---
+
+## 📝 Gestion des Contrats
+
+### `dolibarr_list_contracts`
+
+Liste les contrats.
+
+**Paramètres:**
+- `thirdparty_id` (string, optionnel) : Filtrer par tiers
+- `status` (string, optionnel) : Filtrer par statut
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_contract`
+
+Récupère les détails d'un contrat.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID du contrat
+
+### `dolibarr_create_contract`
+
+Crée un nouveau contrat.
+
+**Paramètres:**
+- `socid` (string, obligatoire) : ID du tiers client
+- `date_contrat` (number, optionnel) : Date du contrat (timestamp Unix)
+- `ref` (string, optionnel) : Référence personnalisée
+
+---
+
+## 🎫 Gestion des Tickets (Support)
+
+### `dolibarr_list_tickets`
+
+Liste les tickets de support.
+
+**Paramètres:**
+- `thirdparty_id` (string, optionnel) : Filtrer par tiers
+- `status` (string, optionnel) : Filtrer par statut (0=nouveau, 1=lu, 2=assigné...)
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_ticket`
+
+Récupère les détails d'un ticket.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID du ticket
+
+### `dolibarr_create_ticket`
+
+Crée un nouveau ticket de support.
+
+**Paramètres:**
+- `subject` (string, obligatoire) : Sujet du ticket
+- `message` (string, obligatoire) : Message/description
+- `fk_soc` (string, optionnel) : ID du tiers concerné
+- `type_code` (string, optionnel) : Type (COM, HELP, ISSUE...)
+- `severity_code` (string, optionnel) : Sévérité (LOW, MEDIUM, HIGH, CRITICAL)
+
+---
+
+## 📅 Gestion de l'Agenda
+
+### `dolibarr_list_agenda_events`
+
+Liste les événements de l'agenda.
+
+**Paramètres:**
+- `thirdparty_id` (string, optionnel) : Filtrer par tiers
+- `user_id` (string, optionnel) : Filtrer par utilisateur propriétaire
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_agenda_event`
+
+Récupère les détails d'un événement.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID de l'événement
+
+### `dolibarr_create_agenda_event`
+
+Crée un événement dans l'agenda.
+
+**Paramètres:**
+- `label` (string, obligatoire) : Libellé de l'événement
+- `type_code` (string, obligatoire) : Type (AC_TEL, AC_RDV, AC_EMAIL, AC_FAX, AC_OTH)
+- `datep` (number, obligatoire) : Date/heure de début (timestamp Unix)
+- `datef` (number, optionnel) : Date/heure de fin
+- `socid` (string, optionnel) : ID du tiers associé
+- `contactid` (string, optionnel) : ID du contact associé
+- `userownerid` (string, optionnel) : ID de l'utilisateur propriétaire
+
+---
+
+## 💰 Gestion des Notes de Frais
+
+### `dolibarr_list_expense_reports`
+
+Liste les notes de frais.
+
+**Paramètres:**
+- `user_id` (string, optionnel) : Filtrer par utilisateur auteur
+- `status` (string, optionnel) : Statut (0=brouillon, 2=validée, 5=approuvée, 6=payée, 99=refusée)
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_expense_report`
+
+Récupère les détails d'une note de frais.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID de la note de frais
+
+---
+
+## 🔧 Gestion des Interventions (Fichinter)
+
+### `dolibarr_list_interventions`
+
+Liste les fiches d'intervention.
+
+**Paramètres:**
+- `thirdparty_id` (string, optionnel) : Filtrer par tiers
+- `status` (string, optionnel) : Statut (0=brouillon, 1=validée, 2=facturée, 3=fermée)
+- `limit` (number, optionnel) : Nombre maximum
+
+### `dolibarr_get_intervention`
+
+Récupère les détails d'une intervention.
+
+**Paramètres:**
+- `id` (string, obligatoire) : ID de l'intervention
+
+### `dolibarr_create_intervention`
+
+Crée une fiche d'intervention.
+
+**Paramètres:**
+- `socid` (string, obligatoire) : ID du tiers client
+- `description` (string, optionnel) : Description de l'intervention
+- `datec` (number, optionnel) : Date de création (timestamp Unix)
 
 ---
 

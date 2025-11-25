@@ -14,7 +14,7 @@ Ce serveur permet aux agents IA comme Claude Desktop, ChatGPT (via adaptateur MC
 
 ## 🛠 Outils Inclus
 
-Le serveur expose **35 outils MCP** couvrant toute l'API Dolibarr :
+Le serveur expose **55 outils MCP** couvrant toute l'API Dolibarr :
 
 ### 📇 Tiers (Thirdparties)
 - `dolibarr_get_thirdparty` - `dolibarr_search_thirdparties`
@@ -51,6 +51,30 @@ Le serveur expose **35 outils MCP** couvrant toute l'API Dolibarr :
 
 ### 🏦 Banques
 - `dolibarr_list_bank_accounts` - `dolibarr_get_bank_account_lines`
+
+### 🏭 Entrepôts (Warehouses) - NOUVEAU
+- `dolibarr_list_warehouses` - `dolibarr_get_warehouse`
+
+### 📦 Stock - NOUVEAU
+- `dolibarr_list_stock_movements` - `dolibarr_create_stock_movement`
+
+### 🚚 Expéditions - NOUVEAU
+- `dolibarr_list_shipments` - `dolibarr_get_shipment` - `dolibarr_create_shipment`
+
+### 📝 Contrats - NOUVEAU
+- `dolibarr_list_contracts` - `dolibarr_get_contract` - `dolibarr_create_contract`
+
+### 🎫 Tickets (Support) - NOUVEAU
+- `dolibarr_list_tickets` - `dolibarr_get_ticket` - `dolibarr_create_ticket`
+
+### 📅 Agenda - NOUVEAU
+- `dolibarr_list_agenda_events` - `dolibarr_get_agenda_event` - `dolibarr_create_agenda_event`
+
+### 💳 Notes de Frais - NOUVEAU
+- `dolibarr_list_expense_reports` - `dolibarr_get_expense_report`
+
+### 🔧 Interventions (Fichinter) - NOUVEAU
+- `dolibarr_list_interventions` - `dolibarr_get_intervention` - `dolibarr_create_intervention`
 
 [📚 Documentation complète des outils](./docs/03-tools.md)
 
