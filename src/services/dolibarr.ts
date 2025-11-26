@@ -280,6 +280,11 @@ export class DolibarrClient {
       const validated = z.array(ThirdPartySchema).parse(response.data);
       return validated;
     } catch (error) {
+      // Si 404 = aucun résultat trouvé, retourner tableau vide au lieu d'erreur
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        logger.info(`[Dolibarr API] Aucun tiers trouvé pour la recherche: "${query}"`);
+        return [];
+      }
       if (error instanceof z.ZodError) {
         logger.error('[Dolibarr API] Validation error:', error.format());
         throw new Error(`Données invalides reçues de l'API Dolibarr: ${error.message}`);

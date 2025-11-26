@@ -95,18 +95,19 @@ export async function handleListProposals(args: unknown) {
 
 export const addProposalLineTool = {
   name: 'dolibarr_add_proposal_line',
-  description: 'Ajouter une ligne à un devis existant',
+  description: 'Ajouter une ligne à un devis existant (produit/service)',
   inputSchema: {
     type: 'object' as const,
     properties: {
       proposal_id: { type: 'string', description: 'ID du devis' },
-      product_id: { type: 'string', description: 'ID du produit/service' },
-      desc: { type: 'string', description: 'Description de la ligne' },
-      qty: { type: 'number', description: 'Quantité' },
-      price: { type: 'number', description: 'Prix unitaire' },
-      tva_tx: { type: 'number', description: 'Taux de TVA' },
+      fk_product: { type: 'string', description: 'ID du produit/service (optionnel si desc fourni)' },
+      desc: { type: 'string', description: 'Description de la ligne (utilisée si fk_product non fourni)' },
+      qty: { type: 'number', description: 'Quantité (défaut: 1)' },
+      subprice: { type: 'number', description: 'Prix unitaire HT' },
+      tva_tx: { type: 'number', description: 'Taux de TVA en % (ex: 20 pour 20%)' },
+      product_type: { type: 'number', description: 'Type: 0=produit physique, 1=service (défaut: 1)' },
     },
-    required: ['proposal_id'],
+    required: ['proposal_id', 'subprice'],
   },
 };
 

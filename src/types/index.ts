@@ -113,11 +113,12 @@ export const ListProposalsArgsSchema = z.object({
 
 export const AddProposalLineArgsSchema = z.object({
   proposal_id: z.string().min(1, 'L\'ID du devis est requis'),
-  product_id: z.string().optional(),
+  fk_product: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
   desc: z.string().optional(),
   qty: z.number().positive().default(1),
-  price: z.number().optional(),
-  tva_tx: z.number().optional(),
+  subprice: z.number().optional(), // Prix unitaire HT
+  tva_tx: z.number().optional(), // Taux de TVA en %
+  product_type: z.number().optional().default(1), // 0=produit, 1=service
 });
 
 export const UpdateProposalLineArgsSchema = z.object({
