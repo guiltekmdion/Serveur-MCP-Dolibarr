@@ -125,7 +125,8 @@ export const UpdateProposalLineArgsSchema = z.object({
   line_id: z.string().min(1, 'L\'ID de la ligne est requis'),
   desc: z.string().optional(),
   qty: z.number().positive().optional(),
-  price: z.number().optional(),
+  subprice: z.number().optional(), // Prix unitaire HT (pas "price" sur les lignes)
+  tva_tx: z.number().optional(),
 });
 
 export const DeleteProposalLineArgsSchema = z.object({
@@ -423,7 +424,7 @@ export const StockMovementSchema = z.object({
   qty: z.number().optional(),
   type: z.string().optional(),
   label: z.string().nullable().optional(),
-  datem: z.string().nullable().optional(),
+  datem: z.union([z.string(), z.number()]).nullable().optional(), // Date peut être string ou timestamp
 }).passthrough();
 
 export const ListStockMovementsArgsSchema = z.object({

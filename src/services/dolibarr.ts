@@ -531,6 +531,11 @@ export class DolibarrClient {
       });
       return z.array(ProductSchema).parse(response.data);
     } catch (error) {
+      // Si 404 = aucun résultat trouvé, retourner tableau vide au lieu d'erreur
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        logger.info(`[Dolibarr API] Aucun produit trouvé pour la recherche: "${query}"`);
+        return [];
+      }
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, `searchProducts(${query})`);
     }
