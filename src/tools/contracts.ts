@@ -33,11 +33,7 @@ export const listContractsTool = {
 
 export async function handleListContracts(args: unknown) {
   const validated = ListContractsArgsSchema.parse(args);
-  const contracts = await dolibarrClient.listContracts(
-    validated.thirdparty_id,
-    validated.status,
-    validated.limit
-  );
+  const contracts = await dolibarrClient.listContracts(validated);
   return {
     content: [
       {

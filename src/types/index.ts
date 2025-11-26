@@ -209,6 +209,34 @@ export const SearchProductsArgsSchema = z.object({
   query: z.string().min(1, 'La requête de recherche est requise'),
 });
 
+export const CreateProductArgsSchema = z.object({
+  ref: z.string().min(1, 'La référence est requise'),
+  label: z.string().min(1, 'Le libellé est requis'),
+  type: z.enum(['0', '1']).default('0').describe('0=Produit, 1=Service'),
+  price: z.number().optional(),
+  price_min: z.number().optional(),
+  tva_tx: z.number().optional(),
+  description: z.string().optional(),
+  status: z.enum(['0', '1']).default('1').describe('0=Hors vente, 1=En vente'),
+  status_buy: z.enum(['0', '1']).default('1').describe('0=Hors achat, 1=En achat'),
+});
+
+export const UpdateProductArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du produit est requis'),
+  ref: z.string().optional(),
+  label: z.string().optional(),
+  price: z.number().optional(),
+  price_min: z.number().optional(),
+  tva_tx: z.number().optional(),
+  description: z.string().optional(),
+  status: z.enum(['0', '1']).optional(),
+  status_buy: z.enum(['0', '1']).optional(),
+});
+
+export const DeleteProductArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du produit est requis'),
+});
+
 // Documents
 export const ListDocumentsArgsSchema = z.object({
   modulepart: z.string().min(1, 'Le type de module est requis'),
@@ -245,6 +273,14 @@ export const CreateProjectArgsSchema = z.object({
   ref: z.string().optional(),
 });
 
+export const UpdateProjectArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du projet est requis'),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  date_start: z.number().optional(),
+  date_end: z.number().optional(),
+});
+
 // Tâches
 export const TaskSchema = z.object({
   id: z.string(),
@@ -264,6 +300,21 @@ export const CreateTaskArgsSchema = z.object({
   ref: z.string().optional(),
 });
 
+export const UpdateTaskArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la tâche est requise'),
+  label: z.string().optional(),
+  description: z.string().optional(),
+  progress: z.number().min(0).max(100).optional(),
+});
+
+export const AddTaskTimeArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la tâche est requis'),
+  date: z.number().describe('Date du temps passé (timestamp)'),
+  duration: z.number().describe('Durée en secondes'),
+  note: z.string().optional(),
+  user_id: z.string().optional().describe('ID utilisateur (optionnel, défaut = utilisateur API)'),
+});
+
 // Utilisateurs
 export const UserSchema = z.object({
   id: z.string(),
@@ -276,6 +327,24 @@ export const GetUserArgsSchema = z.object({
   id: z.string().min(1, 'L\'ID de l\'utilisateur est requis'),
 });
 
+export const CreateUserArgsSchema = z.object({
+  login: z.string().min(1, 'Le login est requis'),
+  password: z.string().min(1, 'Le mot de passe est requis'),
+  lastname: z.string().optional(),
+  firstname: z.string().optional(),
+  email: z.string().email().optional(),
+  admin: z.enum(['0', '1']).default('0'),
+});
+
+export const UpdateUserArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'utilisateur est requis'),
+  lastname: z.string().optional(),
+  firstname: z.string().optional(),
+  email: z.string().email().optional(),
+  password: z.string().optional(),
+  admin: z.enum(['0', '1']).optional(),
+});
+
 // Banques
 export const BankAccountSchema = z.object({
   id: z.string(),
@@ -285,6 +354,30 @@ export const BankAccountSchema = z.object({
 
 export const GetBankAccountLinesArgsSchema = z.object({
   id: z.string().min(1, 'L\'ID du compte bancaire est requis'),
+});
+
+export const CreateBankAccountArgsSchema = z.object({
+  label: z.string().min(1, 'Le libellé est requis'),
+  bank: z.string().optional(),
+  code_banque: z.string().optional(),
+  code_guichet: z.string().optional(),
+  number: z.string().optional(),
+  cle_rib: z.string().optional(),
+  bic: z.string().optional(),
+  iban: z.string().optional(),
+  currency_code: z.string().default('EUR'),
+  country_id: z.number().optional(),
+});
+
+// Entrepôts (Nouveau)
+export const CreateWarehouseArgsSchema = z.object({
+  label: z.string().min(1, 'Le libellé est requis'),
+  description: z.string().optional(),
+  statut: z.enum(['0', '1']).default('1'),
+  lieu: z.string().optional(),
+  address: z.string().optional(),
+  zip: z.string().optional(),
+  town: z.string().optional(),
 });
 
 // Types inférés
@@ -520,3 +613,92 @@ export const CreateInterventionArgsSchema = z.object({
 });
 
 export type Intervention = z.infer<typeof InterventionSchema>;
+
+// === FOURNISSEURS (Suppliers) ===
+export const SupplierOrderSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  socid: z.string().optional(),
+  date_commande: z.number().nullable().optional(),
+  total_ht: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListSupplierOrdersArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateSupplierOrderArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du fournisseur est requis'),
+  date_commande: z.number().int().positive().optional(),
+  note_private: z.string().optional(),
+  note_public: z.string().optional(),
+});
+
+export const SupplierInvoiceSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  socid: z.string().optional(),
+  date: z.number().nullable().optional(),
+  total_ht: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+  label: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListSupplierInvoicesArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateSupplierInvoiceArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du fournisseur est requis'),
+  date: z.number().int().positive().optional(),
+  label: z.string().optional(),
+  amount: z.number().optional(),
+});
+
+export type SupplierOrder = z.infer<typeof SupplierOrderSchema>;
+export type SupplierInvoice = z.infer<typeof SupplierInvoiceSchema>;
+
+// === CATÉGORIES (Tags) ===
+export const CategorySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  type: z.string().optional(), // 0=product, 1=supplier, 2=customer, 3=member
+  description: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListCategoriesArgsSchema = z.object({
+  type: z.enum(['product', 'supplier', 'customer', 'member', 'contact', 'project', 'user']).optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const LinkCategoryArgsSchema = z.object({
+  category_id: z.string().min(1, 'L\'ID de la catégorie est requis'),
+  object_id: z.string().min(1, 'L\'ID de l\'objet est requis'),
+  object_type: z.enum(['product', 'supplier', 'customer', 'member', 'contact', 'project', 'user']),
+});
+
+export type Category = z.infer<typeof CategorySchema>;
+
+// === COMMUN (Common) ===
+export const SendEmailArgsSchema = z.object({
+  to: z.string().email('Email invalide'),
+  subject: z.string().min(1, 'Le sujet est requis'),
+  message: z.string().min(1, 'Le message est requis'),
+  from: z.string().email().optional(),
+});
+
+export const GetServerInfoArgsSchema = z.object({});
+
+// === NOTES DE FRAIS (Create) ===
+export const CreateExpenseReportArgsSchema = z.object({
+  user_id: z.string().min(1, 'L\'ID utilisateur est requis'),
+  date_debut: z.number().int().positive().optional(),
+  date_fin: z.number().int().positive().optional(),
+  note_private: z.string().optional(),
+  note_public: z.string().optional(),
+});

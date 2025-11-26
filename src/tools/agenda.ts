@@ -33,11 +33,7 @@ export const listAgendaEventsTool = {
 
 export async function handleListAgendaEvents(args: unknown) {
   const validated = ListAgendaEventsArgsSchema.parse(args);
-  const events = await dolibarrClient.listAgendaEvents(
-    validated.thirdparty_id,
-    validated.user_id,
-    validated.limit
-  );
+  const events = await dolibarrClient.listAgendaEvents(validated);
   return {
     content: [
       {

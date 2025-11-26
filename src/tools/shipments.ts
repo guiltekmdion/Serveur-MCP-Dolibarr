@@ -33,11 +33,7 @@ export const listShipmentsTool = {
 
 export async function handleListShipments(args: unknown) {
   const validated = ListShipmentsArgsSchema.parse(args);
-  const shipments = await dolibarrClient.listShipments(
-    validated.thirdparty_id,
-    validated.status,
-    validated.limit
-  );
+  const shipments = await dolibarrClient.listShipments(validated);
   return {
     content: [
       {

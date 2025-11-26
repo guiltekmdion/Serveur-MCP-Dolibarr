@@ -33,11 +33,7 @@ export const listExpenseReportsTool = {
 
 export async function handleListExpenseReports(args: unknown) {
   const validated = ListExpenseReportsArgsSchema.parse(args);
-  const reports = await dolibarrClient.listExpenseReports(
-    validated.user_id,
-    validated.status,
-    validated.limit
-  );
+  const reports = await dolibarrClient.listExpenseReports(validated);
   return {
     content: [
       {

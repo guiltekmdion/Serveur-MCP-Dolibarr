@@ -33,11 +33,7 @@ export const listStockMovementsTool = {
 
 export async function handleListStockMovements(args: unknown) {
   const validated = ListStockMovementsArgsSchema.parse(args);
-  const movements = await dolibarrClient.listStockMovements(
-    validated.product_id,
-    validated.warehouse_id,
-    validated.limit
-  );
+  const movements = await dolibarrClient.listStockMovements(validated);
   return {
     content: [
       {

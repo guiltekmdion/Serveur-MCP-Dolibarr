@@ -33,11 +33,7 @@ export const listTicketsTool = {
 
 export async function handleListTickets(args: unknown) {
   const validated = ListTicketsArgsSchema.parse(args);
-  const tickets = await dolibarrClient.listTickets(
-    validated.thirdparty_id,
-    validated.status,
-    validated.limit
-  );
+  const tickets = await dolibarrClient.listTickets(validated);
   return {
     content: [
       {

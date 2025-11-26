@@ -9,7 +9,10 @@ import {
   CreateInvoiceFromProposalArgsSchema,
   RecordInvoicePaymentArgsSchema,
   GetProductArgsSchema,
-  SearchProductsArgsSchema
+  SearchProductsArgsSchema,
+  CreateProductArgsSchema,
+  UpdateProductArgsSchema,
+  DeleteProductArgsSchema
 } from '../types/index.js';
 
 // === COMMANDES ===
@@ -191,4 +194,72 @@ export async function handleSearchProducts(args: unknown) {
   const validated = SearchProductsArgsSchema.parse(args);
   const products = await dolibarrClient.searchProducts(validated.query);
   return { content: [{ type: 'text' as const, text: JSON.stringify(products, null, 2) }] };
+}
+
+export const createProductTool = {
+  name: 'dolibarr_create_product',
+  description: 'Créer un nouveau produit ou service',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      ref: { type: 'string', description: 'Référence du produit' },
+      label: { type: 'string', description: 'Libellé du produit' },
+      type: { type: 'string', description: '0=Produit, 1=Service', enum: ['0', '1'] },
+      price: { type: 'number', description: 'Prix de vente HT' },
+      tva_tx: { type: 'number', description: 'Taux de TVA' },
+      description: { type: 'string', description: 'Description' },
+      status: { type: 'string', description: '0=Hors vente, 1=En vente', enum: ['0', '1'] },
+      status_buy: { type: 'string', description: '0=Hors achat, 1=En achat', enum: ['0', '1'] },
+    },
+    required: ['ref', 'label'],
+  },
+};
+
+export async function handleCreateProduct(args: unknown) {
+  const validated = CreateProductArgsSchema.parse(args);
+  const id = await dolibarrClient.createProduct(validated);
+  return { content: [{ type: 'text' as const, text: JSON.stringify({ id, message: 'Produit créé avec succès' }, null, 2) }] };
+}
+
+export const updateProductTool = {
+  name: 'dolibarr_update_product',
+  description: 'Mettre à jour un produit ou service existant',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du produit à modifier' },
+      ref: { type: 'string', description: 'Nouvelle référence' },
+      label: { type: 'string', description: 'Nouveau libellé' },
+      price: { type: 'number', description: 'Nouveau prix de vente HT' },
+      tva_tx: { type: 'number', description: 'Nouveau taux de TVA' },
+      description: { type: 'string', description: 'Nouvelle description' },
+      status: { type: 'string', description: '0=Hors vente, 1=En vente', enum: ['0', '1'] },
+      status_buy: { type: 'string', description: '0=Hors achat, 1=En achat', enum: ['0', '1'] },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleUpdateProduct(args: unknown) {
+  const validated = UpdateProductArgsSchema.parse(args);
+  const id = await dolibarrClient.updateProduct(validated);
+  return { content: [{ type: 'text' as const, text: JSON.stringify({ id, message: 'Produit mis à jour avec succès' }, null, 2) }] };
+}
+
+export const deleteProductTool = {
+  name: 'dolibarr_delete_product',
+  description: 'Supprimer un produit ou service',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du produit à supprimer' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteProduct(args: unknown) {
+  const validated = DeleteProductArgsSchema.parse(args);
+  await dolibarrClient.deleteProduct(validated.id);
+  return { content: [{ type: 'text' as const, text: JSON.stringify({ message: 'Produit supprimé avec succès' }, null, 2) }] };
 }

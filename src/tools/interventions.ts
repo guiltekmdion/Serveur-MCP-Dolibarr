@@ -33,11 +33,7 @@ export const listInterventionsTool = {
 
 export async function handleListInterventions(args: unknown) {
   const validated = ListInterventionsArgsSchema.parse(args);
-  const interventions = await dolibarrClient.listInterventions(
-    validated.thirdparty_id,
-    validated.status,
-    validated.limit
-  );
+  const interventions = await dolibarrClient.listInterventions(validated);
   return {
     content: [
       {

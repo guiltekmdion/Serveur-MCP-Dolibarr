@@ -24,13 +24,13 @@ class Logger {
 
   debug(message: string, meta?: any) {
     if (this.currentLevel <= levels.debug) {
-      console.debug(this.formatMessage('debug', message, meta));
+      console.error(this.formatMessage('debug', message, meta));
     }
   }
 
   info(message: string, meta?: any) {
     if (this.currentLevel <= levels.info) {
-      console.info(this.formatMessage('info', message, meta));
+      console.error(this.formatMessage('info', message, meta));
     }
   }
 

@@ -3,7 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import { dolibarrClient } from '../services/dolibarr.js';
-import { ListWarehousesArgsSchema, GetWarehouseArgsSchema } from '../types/index.js';
+import { ListWarehousesArgsSchema, GetWarehouseArgsSchema, CreateWarehouseArgsSchema } from '../types/index.js';
 
 /**
  * Outil MCP : Lister les entrepôts
@@ -67,6 +67,40 @@ export async function handleGetWarehouse(args: unknown) {
   };
 }
 
+/**
+ * Outil MCP : Créer un entrepôt
+ */
+export const createWarehouseTool = {
+  name: 'dolibarr_create_warehouse',
+  description: 'Créer un nouvel entrepôt',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      label: { type: 'string', description: 'Libellé de l\'entrepôt' },
+      description: { type: 'string', description: 'Description' },
+      statut: { type: 'string', description: 'Statut (0=fermé, 1=ouvert)', enum: ['0', '1'] },
+      lieu: { type: 'string', description: 'Lieu' },
+      address: { type: 'string', description: 'Adresse' },
+      zip: { type: 'string', description: 'Code postal' },
+      town: { type: 'string', description: 'Ville' },
+    },
+    required: ['label'],
+  },
+};
+
+export async function handleCreateWarehouse(args: unknown) {
+  const validated = CreateWarehouseArgsSchema.parse(args);
+  const id = await dolibarrClient.createWarehouse(validated);
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify({ id, message: 'Entrepôt créé avec succès' }, null, 2),
+      },
+    ],
+  };
+}
+
 // Export des outils pour l'enregistrement dans server.ts
-export const warehouseTools = [listWarehousesTool, getWarehouseTool];
+export const warehouseTools = [listWarehousesTool, getWarehouseTool, createWarehouseTool];
 

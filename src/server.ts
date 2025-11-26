@@ -6,6 +6,8 @@
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import express from 'express';
 import {
   CallToolRequestSchema,
   ErrorCode,
@@ -57,6 +59,15 @@ import * as Contracts from './tools/contracts.js';
 
 // Import Tickets
 import * as Tickets from './tools/tickets.js';
+
+// Import Fournisseurs
+import * as Suppliers from './tools/suppliers.js';
+
+// Import Catégories
+import * as Categories from './tools/categories.js';
+
+// Import Commun
+import * as Common from './tools/common.js';
 
 // Import Agenda
 import * as Agenda from './tools/agenda.js';
@@ -131,6 +142,9 @@ class DolibarrMcpServer {
         // Produits
         OrdersInvoicesProducts.getProductTool,
         OrdersInvoicesProducts.searchProductsTool,
+        OrdersInvoicesProducts.createProductTool,
+        OrdersInvoicesProducts.updateProductTool,
+        OrdersInvoicesProducts.deleteProductTool,
         // Documents
         Advanced.listDocumentsTool,
         Advanced.uploadDocumentTool,
@@ -138,15 +152,21 @@ class DolibarrMcpServer {
         Advanced.getProjectTool,
         Advanced.listProjectsTool,
         Advanced.createProjectTool,
+        Advanced.updateProjectTool,
         // Tâches
         Advanced.getTaskTool,
         Advanced.createTaskTool,
+        Advanced.updateTaskTool,
+        Advanced.addTaskTimeTool,
         // Utilisateurs
         Advanced.getUserTool,
         Advanced.listUsersTool,
+        Advanced.createUserTool,
+        Advanced.updateUserTool,
         // Banques
         Advanced.listBankAccountsTool,
         Advanced.getBankAccountLinesTool,
+        Advanced.createBankAccountTool,
         // ============================================
         // NOUVEAUX OUTILS - Novembre 2025
         // ============================================
@@ -160,6 +180,12 @@ class DolibarrMcpServer {
         ...Contracts.contractTools,
         // Tickets
         ...Tickets.ticketTools,
+        // Fournisseurs
+        ...Suppliers.supplierTools,
+        // Catégories
+        ...Categories.categoryTools,
+        // Commun
+        ...Common.commonTools,
         // Agenda
         ...Agenda.agendaTools,
         // Notes de Frais
@@ -203,6 +229,9 @@ class DolibarrMcpServer {
           // Produits
           'dolibarr_get_product': OrdersInvoicesProducts.handleGetProduct,
           'dolibarr_search_products': OrdersInvoicesProducts.handleSearchProducts,
+          'dolibarr_create_product': OrdersInvoicesProducts.handleCreateProduct,
+          'dolibarr_update_product': OrdersInvoicesProducts.handleUpdateProduct,
+          'dolibarr_delete_product': OrdersInvoicesProducts.handleDeleteProduct,
           // Documents
           'dolibarr_list_documents_for_object': Advanced.handleListDocuments,
           'dolibarr_upload_document_for_object': Advanced.handleUploadDocument,
@@ -210,21 +239,28 @@ class DolibarrMcpServer {
           'dolibarr_get_project': Advanced.handleGetProject,
           'dolibarr_list_projects': Advanced.handleListProjects,
           'dolibarr_create_project': Advanced.handleCreateProject,
+          'dolibarr_update_project': Advanced.handleUpdateProject,
           // Tâches
           'dolibarr_get_task': Advanced.handleGetTask,
           'dolibarr_create_task': Advanced.handleCreateTask,
+          'dolibarr_update_task': Advanced.handleUpdateTask,
+          'dolibarr_add_task_time': Advanced.handleAddTaskTime,
           // Utilisateurs
           'dolibarr_get_user': Advanced.handleGetUser,
           'dolibarr_list_users': Advanced.handleListUsers,
+          'dolibarr_create_user': Advanced.handleCreateUser,
+          'dolibarr_update_user': Advanced.handleUpdateUser,
           // Banques
           'dolibarr_list_bank_accounts': Advanced.handleListBankAccounts,
           'dolibarr_get_bank_account_lines': Advanced.handleGetBankAccountLines,
+          'dolibarr_create_bank_account': Advanced.handleCreateBankAccount,
           // ============================================
           // NOUVEAUX HANDLERS - Novembre 2025
           // ============================================
           // Entrepôts
           'dolibarr_list_warehouses': Warehouses.handleListWarehouses,
           'dolibarr_get_warehouse': Warehouses.handleGetWarehouse,
+          'dolibarr_create_warehouse': Warehouses.handleCreateWarehouse,
           // Stock
           'dolibarr_list_stock_movements': Stock.handleListStockMovements,
           'dolibarr_create_stock_movement': Stock.handleCreateStockMovement,
@@ -240,6 +276,18 @@ class DolibarrMcpServer {
           'dolibarr_list_tickets': Tickets.handleListTickets,
           'dolibarr_get_ticket': Tickets.handleGetTicket,
           'dolibarr_create_ticket': Tickets.handleCreateTicket,
+          // Fournisseurs (Commandes & Factures)
+          'dolibarr_list_supplier_orders': Suppliers.handleListSupplierOrders,
+          'dolibarr_create_supplier_order': Suppliers.handleCreateSupplierOrder,
+          'dolibarr_list_supplier_invoices': Suppliers.handleListSupplierInvoices,
+          'dolibarr_create_supplier_invoice': Suppliers.handleCreateSupplierInvoice,
+          // Catégories
+          'dolibarr_list_categories': Categories.handleListCategories,
+          'dolibarr_link_category': Categories.handleLinkCategory,
+          // Commun
+          'dolibarr_send_email': Common.handleSendEmail,
+          'dolibarr_get_server_info': Common.handleGetServerInfo,
+          'dolibarr_create_expense_report': Common.handleCreateExpenseReport,
           // Agenda
           'dolibarr_list_agenda_events': Agenda.handleListAgendaEvents,
           'dolibarr_get_agenda_event': Agenda.handleGetAgendaEvent,
@@ -333,9 +381,36 @@ class DolibarrMcpServer {
   }
 
   async run() {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error('Serveur MCP Dolibarr démarré en mode STDIO');
+    if (process.env.PORT) {
+      // Mode HTTP/SSE
+      const app = express();
+      const port = parseInt(process.env.PORT);
+      let transport: SSEServerTransport | null = null;
+
+      app.get('/sse', async (req, res) => {
+        console.error('Nouvelle connexion SSE entrante');
+        transport = new SSEServerTransport('/messages', res);
+        await this.server.connect(transport);
+      });
+
+      app.post('/messages', async (req, res) => {
+        if (transport) {
+          await transport.handlePostMessage(req, res);
+        } else {
+          res.status(400).send('No active transport');
+        }
+      });
+
+      app.listen(port, () => {
+        console.error(`Serveur MCP Dolibarr démarré sur le port ${port} (Mode SSE)`);
+        console.error(`URL pour Claude: http://localhost:${port}/sse`);
+      });
+    } else {
+      // Mode STDIO
+      const transport = new StdioServerTransport();
+      await this.server.connect(transport);
+      console.error('Serveur MCP Dolibarr démarré en mode STDIO');
+    }
   }
 }
 

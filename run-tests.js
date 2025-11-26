@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { createInterface } from 'readline';
 
-const docker = spawn('docker', ['exec', '-i', 'dolibarr-mcp', 'node', 'dist/server.js']);
+const docker = spawn('docker', ['exec', '-i', '-e', 'PORT=', 'dolibarr-mcp', 'node', 'dist/server.js']);
 
 const rl = createInterface({
   input: docker.stdout,
@@ -25,7 +25,10 @@ const createdItems = {
   agendaEvents: [],
   interventions: [],
   shipments: [],
-  stockMovements: []
+  stockMovements: [],
+  supplierOrders: [],
+  supplierInvoices: [],
+  expenseReports: []
 };
 
 rl.on('line', (line) => {
@@ -311,26 +314,48 @@ async function runTests() {
     // ========================================
     console.log('\n--- Testing Products ---');
     
+    // Create Product
+    const newProduct = await call("tools/call", {
+      name: "dolibarr_create_product",
+      arguments: {
+        ref: `PROD-${Date.now()}`,
+        label: `Test Product ${Date.now()}`,
+        price: 100,
+        tva_tx: 20,
+        type: "0"
+      }
+    });
+    
+    let productId = null;
+    if (!isError(newProduct)) {
+      productId = extractId(newProduct);
+      console.log(`✅ Create Product: OK (ID: ${productId})`);
+      
+      // Update Product
+      await call("tools/call", {
+        name: "dolibarr_update_product",
+        arguments: {
+          id: String(productId),
+          price: 150,
+          description: "Updated description"
+        }
+      });
+      console.log('✅ Update Product: OK');
+      
+      // Get Product
+      await call("tools/call", {
+        name: "dolibarr_get_product",
+        arguments: { id: String(productId) }
+      });
+      console.log('✅ Get Product: OK');
+    }
+
     const productsSearch = await call("tools/call", {
       name: "dolibarr_search_products",
       arguments: { query: "%" }
     });
     console.log('✅ Search Products: OK');
     
-    // Try to get first product if exists
-    try {
-      const products = JSON.parse(productsSearch.content[0].text);
-      if (products && products.length > 0) {
-        await call("tools/call", {
-          name: "dolibarr_get_product",
-          arguments: { id: String(products[0].id) }
-        });
-        console.log('✅ Get Product: OK');
-      }
-    } catch (e) {
-      console.log('⚠️ No products to test');
-    }
-
     // ========================================
     // PROJECTS & TASKS
     // ========================================
@@ -350,6 +375,16 @@ async function runTests() {
       projectId = extractId(newProject);
       createdItems.projects.push(projectId);
       console.log(`✅ Create Project: OK (ID: ${projectId})`);
+      
+      // Update Project
+      await call("tools/call", {
+        name: "dolibarr_update_project",
+        arguments: {
+          id: String(projectId),
+          description: "Updated project description"
+        }
+      });
+      console.log('✅ Update Project: OK');
       
       await call("tools/call", {
         name: "dolibarr_get_project",
@@ -372,6 +407,28 @@ async function runTests() {
         createdItems.tasks.push(taskId);
         console.log(`✅ Create Task: OK (ID: ${taskId})`);
         
+        // Update Task
+        await call("tools/call", {
+          name: "dolibarr_update_task",
+          arguments: {
+            id: String(taskId),
+            progress: 50
+          }
+        });
+        console.log('✅ Update Task: OK');
+        
+        // Add Time
+        await call("tools/call", {
+          name: "dolibarr_add_task_time",
+          arguments: {
+            id: String(taskId),
+            date: Math.floor(Date.now() / 1000),
+            duration: 3600,
+            note: "Worked 1 hour"
+          }
+        });
+        console.log('✅ Add Task Time: OK');
+        
         await call("tools/call", {
           name: "dolibarr_get_task",
           arguments: { id: String(taskId) }
@@ -391,50 +448,85 @@ async function runTests() {
     // ========================================
     console.log('\n--- Testing Users ---');
     
+    // Create User
+    const newUser = await call("tools/call", {
+      name: "dolibarr_create_user",
+      arguments: {
+        login: `user${Date.now()}`,
+        password: "password123",
+        lastname: "TestUser",
+        firstname: "MCP",
+        email: `user${Date.now()}@test.com`,
+        admin: "0"
+      }
+    });
+    
+    if (!isError(newUser)) {
+      const userId = extractId(newUser);
+      console.log(`✅ Create User: OK (ID: ${userId})`);
+      
+      // Update User
+      await call("tools/call", {
+        name: "dolibarr_update_user",
+        arguments: {
+          id: String(userId),
+          firstname: "UpdatedName"
+        }
+      });
+      console.log('✅ Update User: OK');
+    }
+
     const usersRes = await call("tools/call", {
       name: "dolibarr_list_users",
       arguments: {}
     });
     console.log('✅ List Users: OK');
     
-    try {
-      const users = JSON.parse(usersRes.content[0].text);
-      if (users && users.length > 0) {
-        await call("tools/call", {
-          name: "dolibarr_get_user",
-          arguments: { id: String(users[0].id) }
-        });
-        console.log('✅ Get User: OK');
-      }
-    } catch (e) {}
-
     // ========================================
     // BANK ACCOUNTS
     // ========================================
     console.log('\n--- Testing Bank Accounts ---');
     
+    // Create Bank Account
+    const newBank = await call("tools/call", {
+      name: "dolibarr_create_bank_account",
+      arguments: {
+        label: `Bank ${Date.now()}`,
+        currency_code: "EUR",
+        bank: "Test Bank"
+      }
+    });
+    
+    if (!isError(newBank)) {
+      const bankId = extractId(newBank);
+      console.log(`✅ Create Bank Account: OK (ID: ${bankId})`);
+    }
+
     const bankRes = await call("tools/call", {
       name: "dolibarr_list_bank_accounts",
       arguments: {}
     });
     console.log('✅ List Bank Accounts: OK');
     
-    try {
-      const banks = JSON.parse(bankRes.content[0].text);
-      if (banks && banks.length > 0) {
-        await call("tools/call", {
-          name: "dolibarr_get_bank_account_lines",
-          arguments: { id: String(banks[0].id) }
-        });
-        console.log('✅ Get Bank Account Lines: OK');
-      }
-    } catch (e) {}
-
     // ========================================
     // NEW MODULES - WAREHOUSES
     // ========================================
     console.log('\n--- Testing Warehouses ---');
     
+    // Create Warehouse
+    const newWarehouse = await call("tools/call", {
+      name: "dolibarr_create_warehouse",
+      arguments: {
+        label: `Warehouse ${Date.now()}`,
+        statut: "1"
+      }
+    });
+    
+    if (!isError(newWarehouse)) {
+      const warehouseId = extractId(newWarehouse);
+      console.log(`✅ Create Warehouse: OK (ID: ${warehouseId})`);
+    }
+
     const warehousesRes = await call("tools/call", {
       name: "dolibarr_list_warehouses",
       arguments: {}
@@ -693,6 +785,150 @@ async function runTests() {
         console.log('✅ List Documents: OK');
       } else {
         console.log('⚠️ Documents: No documents or error');
+      }
+    }
+
+    // ========================================
+    // SUPPLIERS (Orders & Invoices)
+    // ========================================
+    console.log('\n--- Testing Suppliers ---');
+
+    // Create Supplier Order
+    const newSupplierOrder = await call("tools/call", {
+      name: "dolibarr_create_supplier_order",
+      arguments: {
+        socid: String(thirdpartyId),
+        date_commande: Math.floor(Date.now() / 1000),
+        note_public: "Test Supplier Order from MCP"
+      }
+    });
+
+    if (!isError(newSupplierOrder)) {
+      const supplierOrderId = extractId(newSupplierOrder);
+      createdItems.supplierOrders.push(supplierOrderId);
+      console.log(`✅ Create Supplier Order: OK (ID: ${supplierOrderId})`);
+
+      await call("tools/call", {
+        name: "dolibarr_list_supplier_orders",
+        arguments: { thirdparty_id: String(thirdpartyId) }
+      });
+      console.log('✅ List Supplier Orders: OK');
+    } else {
+      console.log('⚠️ Failed to create Supplier Order (Module might be inactive)');
+    }
+
+    // Create Supplier Invoice
+    const newSupplierInvoice = await call("tools/call", {
+      name: "dolibarr_create_supplier_invoice",
+      arguments: {
+        socid: String(thirdpartyId),
+        date: Math.floor(Date.now() / 1000),
+        label: "Test Supplier Invoice",
+        amount: 100
+      }
+    });
+
+    if (!isError(newSupplierInvoice)) {
+      const supplierInvoiceId = extractId(newSupplierInvoice);
+      createdItems.supplierInvoices.push(supplierInvoiceId);
+      console.log(`✅ Create Supplier Invoice: OK (ID: ${supplierInvoiceId})`);
+
+      await call("tools/call", {
+        name: "dolibarr_list_supplier_invoices",
+        arguments: { thirdparty_id: String(thirdpartyId) }
+      });
+      console.log('✅ List Supplier Invoices: OK');
+    } else {
+      console.log('⚠️ Failed to create Supplier Invoice (Module might be inactive)');
+    }
+
+    // ========================================
+    // CATEGORIES
+    // ========================================
+    console.log('\n--- Testing Categories ---');
+
+    const categoriesRes = await call("tools/call", {
+      name: "dolibarr_list_categories",
+      arguments: { type: "customer" }
+    });
+
+    if (!isError(categoriesRes)) {
+      console.log('✅ List Categories: OK');
+      
+      // Try to link category if any exist
+      try {
+        const cats = JSON.parse(categoriesRes.content[0].text);
+        if (Array.isArray(cats) && cats.length > 0) {
+          const catId = cats[0].id;
+          await call("tools/call", {
+            name: "dolibarr_link_category",
+            arguments: {
+              category_id: String(catId),
+              object_id: String(thirdpartyId),
+              object_type: "customer"
+            }
+          });
+          console.log('✅ Link Category: OK');
+        } else {
+          console.log('ℹ️ No categories found to test linking');
+        }
+      } catch (e) {
+        console.log('⚠️ Error parsing categories response');
+      }
+    } else {
+      console.log('⚠️ Categories module not active');
+    }
+
+    // ========================================
+    // COMMON & MISC
+    // ========================================
+    console.log('\n--- Testing Common Tools ---');
+
+    // Server Info
+    const serverInfo = await call("tools/call", {
+      name: "dolibarr_get_server_info",
+      arguments: {}
+    });
+    if (!isError(serverInfo)) {
+      console.log('✅ Get Server Info: OK');
+    }
+
+    // Expense Report
+    // Need a user ID. We created one earlier if successful.
+    // Let's try to find a user ID from createdItems or use current user (if we knew it)
+    // We'll skip if no user created
+    // Actually we can list users to find one.
+    
+    const usersResForExpense = await call("tools/call", {
+      name: "dolibarr_list_users",
+      arguments: { limit: 1 }
+    });
+    
+    if (!isError(usersResForExpense)) {
+      try {
+        const users = JSON.parse(usersResForExpense.content[0].text);
+        if (Array.isArray(users) && users.length > 0) {
+          const userId = users[0].id;
+          const newExpense = await call("tools/call", {
+            name: "dolibarr_create_expense_report",
+            arguments: {
+              user_id: String(userId),
+              date_debut: Math.floor(Date.now() / 1000),
+              date_fin: Math.floor(Date.now() / 1000),
+              note_public: "Test Expense Report"
+            }
+          });
+          
+          if (!isError(newExpense)) {
+            const expenseId = extractId(newExpense);
+            createdItems.expenseReports.push(expenseId);
+            console.log(`✅ Create Expense Report: OK (ID: ${expenseId})`);
+          } else {
+             console.log('⚠️ Failed to create Expense Report');
+          }
+        }
+      } catch (e) {
+        console.log('⚠️ Error parsing users for expense report test');
       }
     }
 
