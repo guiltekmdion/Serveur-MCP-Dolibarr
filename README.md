@@ -1,10 +1,87 @@
 # Serveur MCP Dolibarr
 
-Un serveur MCP (Model Context Protocol) pour Dolibarr ERP/CRM permettant aux agents IA comme Claude Desktop d'interagir avec votre instance Dolibarr de manière sécurisée via son API REST.
+<div align="center">
+
+**Connectez votre Dolibarr ERP/CRM à Claude Desktop et autres agents IA compatibles MCP**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-green.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-purple.svg)](https://modelcontextprotocol.io)
+[![Dolibarr](https://img.shields.io/badge/Dolibarr-10%2B-orange.svg)](https://www.dolibarr.org/)
+
+Un serveur MCP (Model Context Protocol) permettant aux agents IA comme Claude Desktop d'interagir avec votre instance Dolibarr de manière sécurisée via son API REST.
+
+</div>
+
+---
+
+## 📑 Table des Matières
+
+- [⚠️ Statut du Projet](#️-statut-du-projet)
+- [🚀 Quick Start](#-quick-start)
+- [🏗️ Architecture et Positionnement](#️-architecture-et-positionnement)
+- [💡 Qu'est-ce que ce serveur permet de faire ?](#-quest-ce-que-ce-serveur-permet-de-faire-)
+- [🛠 Outils MCP Disponibles](#-outils-mcp-disponibles)
+- [💼 Cas d'Usage Concrets](#-cas-dusage-concrets)
+- [📦 Installation](#-installation)
+- [🤖 Configuration pour Claude Desktop](#-configuration-pour-claude-desktop)
+- [🐛 Débogage](#-débogage)
+- [📚 Documentation](#-documentation)
+- [❓ FAQ](#-faq)
+- [👥 Auteurs et Crédits](#-auteurs-et-crédits)
+
+---
 
 ## ⚠️ Statut du Projet
 
-**Ceci est un POC (Proof of Concept)** en développement actif. Le serveur est fonctionnel et couvre une large partie de l'API Dolibarr, mais il est encore en phase d'amélioration continue. N'hésitez pas à remonter des bugs ou à contribuer !
+**Ceci est un POC (Proof of Concept)** en développement actif. Le serveur est fonctionnel et couvre une large partie de l'API Dolibarr (105+ outils), mais il est encore en phase d'amélioration continue.
+
+✅ **Fonctionnel** pour une utilisation quotidienne
+🔧 **En amélioration** constante
+🤝 **Contributions** bienvenues !
+
+---
+
+## 🚀 Quick Start
+
+### En 5 minutes avec Docker
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/votre-repo/serveur-mcp-dolibarr.git
+cd serveur-mcp-dolibarr
+
+# 2. Créer le fichier .env
+cp .env.example .env
+# Éditez .env avec vos informations Dolibarr
+
+# 3. Construire l'image Docker
+docker build -t dolibarr-mcp .
+
+# 4. Tester
+docker run -i --rm --env-file .env dolibarr-mcp
+```
+
+**Ensuite**, ajoutez cette configuration à votre `claude_desktop_config.json` :
+
+```json
+{
+  "mcpServers": {
+    "dolibarr": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "--env-file", "/chemin/vers/.env", "dolibarr-mcp"]
+    }
+  }
+}
+```
+
+**Redémarrez Claude Desktop** et commencez à dialoguer avec votre Dolibarr ! 🎉
+
+📖 [Guide complet d'installation](#-installation)
+
+---
 
 ## 🏗️ Architecture et Positionnement
 
@@ -38,31 +115,62 @@ Ce serveur MCP fonctionne **en dehors de Dolibarr** pour plusieurs raisons strat
 
 Cela permet à n'importe quel agent compatible MCP (Claude Desktop, ChatGPT avec adaptateur, agents autonomes...) de manipuler votre ERP sans connaître les spécificités de l'API Dolibarr.
 
-## 🚀 Fonctionnalités
+## ✨ Pourquoi Utiliser ce Serveur MCP ?
 
-- **Autonome** : Fonctionne indépendamment du code interne de Dolibarr. Utilise uniquement l'API REST.
-- **Stack Moderne** : Construit avec TypeScript et Node.js LTS.
-- **Standardisé** : Utilise le SDK officiel `@modelcontextprotocol/sdk`.
-- **Prêt pour Docker** : Inclut un Dockerfile optimisé et une configuration Compose.
-- **Sécurisé** : Configuration par variables d'environnement, aucun identifiant en dur.
-- **Enrichissement Automatique** : Complète automatiquement les données des entreprises françaises (SIREN, SIRET, NAF, RCS, Adresse) via l'API `api.gouv.fr` lors de la création si l'adresse est manquante.
-- **Couverture Complète** : 105+ outils MCP couvrant l'ensemble de l'API Dolibarr.
+### 🎯 Avantages Clés
+
+| Avantage | Description |
+|----------|-------------|
+| 🔌 **Plug & Play** | Aucune modification de Dolibarr nécessaire. Utilise uniquement l'API REST publique. |
+| 🤖 **IA-Ready** | Dialogue en langage naturel avec votre ERP via Claude Desktop ou autres agents IA. |
+| 🔒 **Sécurisé** | Configuration par variables d'environnement. Isolation complète via Docker. |
+| 🌍 **Universel** | Compatible avec toutes les instances Dolibarr (SaaS, on-premise, Docker). |
+| ⚡ **Complet** | **105+ outils MCP** couvrant l'intégralité de l'API Dolibarr. |
+| 🇫🇷 **Smart** | Enrichissement automatique des entreprises françaises (SIREN, SIRET, NAF via api.gouv.fr). |
+| 🚀 **Moderne** | TypeScript + Node.js LTS + SDK officiel MCP. |
+| 📦 **Prêt pour Production** | Docker optimisé, logs structurés, gestion d'erreurs robuste. |
+
+### 🔥 Ce Qui Rend ce Serveur Unique
+
+- ✅ **Zéro Code dans Dolibarr** : Pas de module à installer, pas de code PHP à modifier
+- ✅ **Multi-modules** : Gestion avancée (droits, multi-entités, abonnements, absences...)
+- ✅ **Testable** : Compatible MCP Inspector pour tests interactifs
+- ✅ **Évolutif** : Architecture modulaire, facile à étendre avec de nouveaux outils
+- ✅ **Documenté** : Documentation complète avec 50+ cas d'usage concrets
 
 ## 💡 Qu'est-ce que ce serveur permet de faire ?
 
-Une fois connecté à Claude Desktop (ou tout autre client MCP), vous pouvez interagir avec votre Dolibarr **en langage naturel**. Exemples :
+Une fois connecté à Claude Desktop (ou tout autre client MCP), vous pouvez **dialoguer en langage naturel** avec votre Dolibarr. Plus besoin de connaître l'API : demandez simplement ce que vous voulez !
 
+### 📝 Exemples de Commandes en Langage Naturel
+
+**🏢 Gestion Commerciale**
 - *"Crée un nouveau client nommé ABC Corp avec l'email contact@abc.com"*
 - *"Trouve-moi tous les tiers qui contiennent 'Google' dans leur nom"*
-- *"Récupère la facture numéro FA2024-123"*
-- *"Liste les 10 dernières propositions commerciales"*
-- *"Crée un ticket de support pour le client ID 42 avec le sujet 'Problème de facturation'"*
-- *"Ajoute un événement agenda demain à 14h : rendez-vous client XYZ"*
-- *"Fais-moi un mouvement de stock : ajoute 50 unités du produit ID 12 dans l'entrepôt ID 3"*
-- *"Gère les droits utilisateurs et les permissions de groupe"*
-- *"Crée un abonnement mensuel pour ce client"*
+- *"Génère une facture pour la proposition commerciale ID 42"*
+- *"Liste les 10 dernières propositions commerciales non signées"*
 
-L'agent IA traduit automatiquement vos demandes en appels aux bons outils MCP, qui eux-mêmes appellent l'API Dolibarr.
+**🎫 Support & Interventions**
+- *"Crée un ticket de support prioritaire pour le client ID 42 : Problème de facturation"*
+- *"Planifie une intervention demain à 14h chez le client XYZ"*
+- *"Liste tous les tickets ouverts de ce mois"*
+
+**📦 Gestion de Stock**
+- *"Ajoute 50 unités du produit ID 12 dans l'entrepôt ID 3"*
+- *"Montre-moi les mouvements de stock de la semaine dernière"*
+- *"Crée une expédition pour la commande CMD-2024-456"*
+
+**👥 Administration & RH**
+- *"Crée un groupe 'Commercial' et ajoute l'utilisateur ID 15"*
+- *"Liste les demandes de congés en attente de validation"*
+- *"Configure les droits de lecture sur les tiers pour ce groupe"*
+
+**📊 Reporting & Analyse**
+- *"Donne-moi un résumé des factures impayées avec leur montant total"*
+- *"Analyse les propositions du mois : combien signées, refusées, en attente ?"*
+- *"Quels sont les 5 meilleurs clients du trimestre ?"*
+
+💬 **L'agent IA comprend votre intention** et exécute automatiquement la séquence d'outils MCP nécessaires, même pour des tâches complexes multi-étapes.
 
 ## 🛠 Outils MCP Disponibles
 
@@ -270,86 +378,138 @@ Claude va :
 
 ## 📋 Prérequis
 
-- Node.js >= 18
-- Une instance Dolibarr fonctionnelle (v10+)
-- Clé API Dolibarr (générée dans les paramètres utilisateur)
+Avant de commencer, assurez-vous d'avoir :
+
+### 🔧 Côté Infrastructure
+
+| Élément | Requis | Notes |
+|---------|--------|-------|
+| **Node.js** | >= 18.0.0 | Pour le mode développement local |
+| **Docker** | Optionnel | Recommandé pour la production |
+| **Git** | Recommandé | Pour cloner le dépôt |
+
+### 🏢 Côté Dolibarr
+
+| Élément | Configuration |
+|---------|---------------|
+| **Version Dolibarr** | >= 10.0 (testé sur 16.x, 17.x, 18.x) |
+| **API REST** | ✅ Activée (Configuration > Modules > API/Services Web) |
+| **Clé API** | Générée dans Paramètres utilisateur > API |
+| **Permissions** | L'utilisateur associé à la clé API doit avoir les droits nécessaires |
+
+> **💡 Astuce** : Créez un utilisateur dédié pour le serveur MCP avec uniquement les droits nécessaires (principe du moindre privilège).
+
+> **⚠️ Important** : Assurez-vous que l'URL de votre API Dolibarr est accessible depuis l'environnement où le serveur MCP sera déployé.
+
+---
 
 ## 📦 Installation
 
-### Développement Local
+Deux méthodes d'installation sont disponibles. **Docker est recommandé pour la production**, Node.js local pour le développement.
 
-1.  **Cloner le dépôt :**
-    ```bash
-    git clone https://github.com/votre-repo/serveur-mcp-dolibarr.git
-    cd serveur-mcp-dolibarr
-    ```
+### 🐳 Méthode 1 : Docker (Recommandé)
 
-2.  **Installer les dépendances :**
-    ```bash
-    npm install
-    ```
+Docker garantit un environnement isolé et reproductible, idéal pour la production.
 
-3.  **Configurer l'environnement :**
-    Copiez `.env.example` vers `.env` et remplissez vos informations.
-    ```bash
-    cp .env.example .env
-    ```
-    Éditez `.env` :
-    ```env
-    DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
-    DOLIBARR_API_KEY=votre_cle_api
-    LOG_LEVEL=info
-    ```
+#### **Étape 1** : Cloner le projet
 
-4.  **Construire et Lancer :**
-    ```bash
-    npm run build
-    npm start
-    ```
+```bash
+git clone https://github.com/votre-repo/serveur-mcp-dolibarr.git
+cd serveur-mcp-dolibarr
+```
 
-### Déploiement Docker (Recommandé)
+#### **Étape 2** : Préparer l'environnement
 
-Docker est la méthode recommandée pour utiliser ce serveur avec Claude Desktop, car elle garantit un environnement isolé et reproductible.
-
-#### 1. Préparer l'environnement
-
-Créez un fichier `.env` à la racine du projet :
 ```bash
 cp .env.example .env
 ```
 
-Éditez `.env` avec vos informations Dolibarr :
+Éditez `.env` et ajoutez vos informations Dolibarr :
+
 ```env
+# URL de l'API Dolibarr (avec /api/index.php à la fin)
 DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
-DOLIBARR_API_KEY=votre_cle_api
+
+# Clé API générée dans Dolibarr (Paramètres utilisateur > API)
+DOLIBARR_API_KEY=votre_cle_api_ici
+
+# Niveau de log (error, warn, info, debug)
 LOG_LEVEL=info
 ```
 
-#### 2. Construire l'image Docker
+> **💡 Astuce** : Pour DoliCloud (SaaS), l'URL est généralement `https://votre-instance.dolicloud.com/api/index.php`
+
+#### **Étape 3** : Construire l'image Docker
 
 ```bash
 docker build -t dolibarr-mcp .
 ```
 
-Cette commande crée une image Docker optimisée avec Node.js 20 Alpine et toutes les dépendances nécessaires.
+Cette commande crée une image Docker optimisée (Node.js 20 Alpine, ~150 MB) avec toutes les dépendances.
 
-#### 3. Tester le serveur (optionnel)
+#### **Étape 4** : Tester le serveur (optionnel mais recommandé)
 
-Avant de connecter à Claude Desktop, vous pouvez tester que le serveur fonctionne :
+Avant de connecter à Claude Desktop, testez que le serveur fonctionne correctement :
 
 ```bash
 docker run -i --rm --env-file .env dolibarr-mcp
 ```
 
-Le serveur démarre en mode STDIO et attend des commandes MCP. Vous pouvez le tester avec le [MCP Inspector](https://github.com/modelcontextprotocol/inspector) :
+Le serveur démarre et attend des commandes MCP. Si tout fonctionne, vous devriez voir :
+
+```
+MCP Server Dolibarr started
+Listening on stdin...
+```
+
+Vous pouvez aussi utiliser le [MCP Inspector](https://github.com/modelcontextprotocol/inspector) pour tester interactivement :
 
 ```bash
 npx @modelcontextprotocol/inspector docker run -i --rm --env-file .env dolibarr-mcp
 ```
 
-#### 4. Connecter à Claude Desktop
+#### **Étape 5** : Connecter à Claude Desktop
 
-Une fois l'image construite, vous êtes prêt à connecter le serveur à Claude Desktop (voir section suivante).
+Une fois l'image construite et testée, vous êtes prêt ! 🎉
+
+👉 **[Passez à la configuration Claude Desktop](#-configuration-pour-claude-desktop)**
+
+---
+
+### 💻 Méthode 2 : Node.js Local (Développement)
+
+Idéal pour le développement et les tests rapides.
+
+#### **Étape 1** : Cloner et installer
+
+```bash
+git clone https://github.com/votre-repo/serveur-mcp-dolibarr.git
+cd serveur-mcp-dolibarr
+npm install
+```
+
+#### **Étape 2** : Configurer l'environnement
+
+```bash
+cp .env.example .env
+# Éditez .env avec vos informations Dolibarr
+```
+
+#### **Étape 3** : Construire et lancer
+
+```bash
+npm run build
+npm start
+```
+
+Le serveur démarre en mode STDIO et est prêt à recevoir des commandes MCP.
+
+**Mode développement avec hot-reload** :
+```bash
+npm run dev
+```
+
+---
 
 ## 🤖 Configuration pour Claude Desktop
 
