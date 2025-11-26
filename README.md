@@ -14,7 +14,7 @@ Ce serveur permet aux agents IA comme Claude Desktop, ChatGPT (via adaptateur MC
 
 ## 🛠 Outils Inclus
 
-Le serveur expose **55 outils MCP** couvrant toute l'API Dolibarr :
+Le serveur expose **105+ outils MCP** couvrant toute l'API Dolibarr :
 
 ### 📇 Tiers (Thirdparties)
 - `dolibarr_get_thirdparty` - `dolibarr_search_thirdparties`
@@ -76,7 +76,24 @@ Le serveur expose **55 outils MCP** couvrant toute l'API Dolibarr :
 ### 🔧 Interventions (Fichinter) - NOUVEAU
 - `dolibarr_list_interventions` - `dolibarr_get_intervention` - `dolibarr_create_intervention`
 
+### 🔐 Droits & Permissions - NOUVEAU
+- `dolibarr_list_user_groups` - `dolibarr_create_user_group` - `dolibarr_add_user_to_group`
+- `dolibarr_set_user_rights` - `dolibarr_get_audit_logs`
+
+### 🌍 Multi-entités & Devises - NOUVEAU
+- `dolibarr_list_entities` - `dolibarr_create_entity`
+- `dolibarr_list_currencies` - `dolibarr_convert_currency`
+
+### 📅 Calendrier & Absences - NOUVEAU
+- `dolibarr_list_holidays` - `dolibarr_create_holiday` - `dolibarr_validate_holiday`
+- `dolibarr_create_resource_booking` - `dolibarr_list_resource_bookings`
+
+### 💳 Abonnements (Subscriptions) - NOUVEAU
+- `dolibarr_list_subscriptions` - `dolibarr_create_subscription`
+- `dolibarr_renew_subscription` - `dolibarr_cancel_subscription`
+
 [📚 Documentation complète des outils](./docs/03-tools.md)
+[🚀 Modules avancés détaillés](./docs/ADVANCED-MODULES.md)
 
 ## 📋 Prérequis
 
@@ -207,11 +224,30 @@ tests/                  # Tests unitaires
 
 ## 📚 Documentation
 
+### 🚀 Démarrage
 - [Installation](./docs/01-installation.md)
 - [Configuration](./docs/02-configuration.md)
-- [Outils MCP](./docs/03-tools.md)
+- [Démarrage Rapide](./docs/QUICKSTART.md)
 - [Déploiement Docker](./docs/04-docker.md)
+
+### 📖 Référence API
+- [Référence API Complète](./docs/API-REFERENCE.md) - **105+ outils documentés**
+- [Liste des Outils MCP](./docs/03-tools.md)
 - [Exploration API](./docs/API_EXPLORATION.md)
+
+### 🎯 Guides & Cas d'Usage
+- [50 Cas d'Usage](./docs/50-USE-CASES.md)
+- [Modules Avancés](./docs/ADVANCED-MODULES.md)
+- [Quick Start Modules Avancés](./docs/QUICKSTART-ADVANCED.md)
+
+### 📝 Changelog & Migration
+- [Changelog Complet](./CHANGELOG.md)
+- [Comparatif des Versions](./CHANGELOG-V2.md)
+- [Résumé Implémentation v2.0](./IMPLEMENTATION-SUMMARY.md)
+
+### 🔧 Compatibilité
+- [Compatibilité API Dolibarr](./docs/COMPATIBILITY.md)
+- [Structure du Projet](./docs/PROJECT_STRUCTURE.md)
 
 ## 👥 Auteurs et Crédits
 

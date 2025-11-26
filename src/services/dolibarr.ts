@@ -99,6 +99,36 @@ import {
   GetTicketArgsSchema,
   CreateTicketArgsSchema,
   TicketSchema,
+  TimeEntry,
+  TimeEntrySchema,
+  ListTimeEntriesArgsSchema,
+  ListTasksForProjectArgsSchema,
+  Lead,
+  LeadSchema,
+  ListLeadsArgsSchema,
+  GetLeadArgsSchema,
+  CreateLeadArgsSchema,
+  UpdateLeadArgsSchema,
+  Payment,
+  PaymentSchema,
+  ListPaymentsArgsSchema,
+  CreatePaymentArgsSchema,
+  ValidateProposalArgsSchema,
+  CloseProposalArgsSchema,
+  ValidateOrderArgsSchema,
+  CloseOrderArgsSchema,
+  ShipOrderArgsSchema,
+  AssignTaskArgsSchema,
+  Member,
+  MemberSchema,
+  ListMembersArgsSchema,
+  CreateMemberArgsSchema,
+  GetStatsArgsSchema,
+  DownloadDocumentArgsSchema,
+  DeleteDocumentArgsSchema,
+  ListDocumentsForObjectArgsSchema,
+  GeneratePdfArgsSchema,
+  SendDocumentByEmailArgsSchema,
 } from '../types/index.js';
 
 export class DolibarrClient {
@@ -1001,6 +1031,433 @@ export class DolibarrClient {
   async createTicket(data: z.infer<typeof CreateTicketArgsSchema>): Promise<string> {
     const response = await this.client.post('tickets', data);
     return response.data;
+  }
+
+  // === TIME ENTRIES (Reporting temps) ===
+  async listTimeEntries(params: z.infer<typeof ListTimeEntriesArgsSchema>): Promise<TimeEntry[]> {
+    // Dolibarr API: GET /tasks/timespent avec filtres
+    const queryParams: any = {
+      limit: params.limit || 100,
+      sortfield: 't.task_date',
+      sortorder: 'DESC',
+    };
+
+    // Construction des filtres SQL
+    const filters: string[] = [];
+    if (params.task_id) filters.push(`(t.fk_task:=:${params.task_id})`);
+    if (params.user_id) filters.push(`(t.fk_user:=:${params.user_id})`);
+    if (params.project_id) {
+      // Pour filtrer par projet, on doit passer par les tâches du projet
+      queryParams.project_id = params.project_id;
+    }
+
+    if (filters.length > 0) {
+      queryParams.sqlfilters = filters.join(' AND ');
+    }
+
+    const response = await this.client.get('tasks/timespent', { params: queryParams });
+    return response.data;
+  }
+
+  async listTasksForProject(projectId: string): Promise<Task[]> {
+    const response = await this.client.get(`projects/${projectId}/tasks`);
+    return response.data;
+  }
+
+  // === OPPORTUNITÉS / LEADS ===
+  async listLeads(params: z.infer<typeof ListLeadsArgsSchema>): Promise<Lead[]> {
+    const queryParams: any = {
+      limit: params.limit || 20,
+      sortfield: 't.rowid',
+      sortorder: 'DESC',
+    };
+
+    if (params.status) queryParams.status = params.status;
+    if (params.thirdparty_id) queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
+
+    const response = await this.client.get('leads', { params: queryParams });
+    return response.data;
+  }
+
+  async getLead(id: string): Promise<Lead> {
+    const response = await this.client.get(`leads/${id}`);
+    return response.data;
+  }
+
+  async createLead(data: z.infer<typeof CreateLeadArgsSchema>): Promise<string> {
+    const response = await this.client.post('leads', data);
+    return response.data;
+  }
+
+  async updateLead(data: z.infer<typeof UpdateLeadArgsSchema>): Promise<void> {
+    const { id, ...updateData } = data;
+    await this.client.put(`leads/${id}`, updateData);
+  }
+
+  // === PAIEMENTS ===
+  async listPayments(params: z.infer<typeof ListPaymentsArgsSchema>): Promise<any[]> {
+    const queryParams: any = {
+      limit: params.limit || 20,
+      sortfield: 't.rowid',
+      sortorder: 'DESC',
+    };
+
+    if (params.invoice_id) {
+      const response = await this.client.get(`invoices/${params.invoice_id}/payments`);
+      return response.data;
+    }
+
+    const response = await this.client.get('payments', { params: queryParams });
+    return response.data;
+  }
+
+  async createPayment(data: z.infer<typeof CreatePaymentArgsSchema>): Promise<string> {
+    const { invoice_id, ...paymentData } = data;
+    const response = await this.client.post(`invoices/${invoice_id}/payments`, paymentData);
+    return response.data;
+  }
+
+  // === PROPOSITIONS AVANCÉES ===
+  async validateProposal(id: string, notrigger: number = 0): Promise<void> {
+    await this.client.post(`proposals/${id}/validate`, { notrigger });
+  }
+
+  async closeProposal(id: string, status: string, note?: string): Promise<void> {
+    await this.client.post(`proposals/${id}/close`, { status, note });
+  }
+
+  // === COMMANDES AVANCÉES ===
+  async validateOrder(id: string, idwarehouse?: string, notrigger: number = 0): Promise<void> {
+    await this.client.post(`orders/${id}/validate`, { idwarehouse, notrigger });
+  }
+
+  async closeOrder(id: string, note?: string): Promise<void> {
+    await this.client.post(`orders/${id}/close`, { note });
+  }
+
+  async shipOrder(orderId: string, dateDelivery?: number): Promise<string> {
+    const shipmentData: any = {
+      origin_id: orderId,
+      origin_type: 'order',
+    };
+    if (dateDelivery) shipmentData.date_delivery = dateDelivery;
+    
+    const response = await this.client.post('shipments', shipmentData);
+    return response.data;
+  }
+
+  // === TÂCHES AVANCÉES ===
+  async assignTaskToUser(taskId: string, userId: string, percentage?: number): Promise<void> {
+    await this.client.post(`tasks/${taskId}/contact/${userId}/user`, {
+      percentage: percentage || 100
+    });
+  }
+
+  // === MEMBRES ===
+  async listMembers(params: z.infer<typeof ListMembersArgsSchema>): Promise<any[]> {
+    const queryParams: any = {
+      limit: params.limit || 20,
+      sortfield: 't.rowid',
+      sortorder: 'DESC',
+    };
+
+    if (params.status) queryParams.statut = params.status;
+
+    const response = await this.client.get('members', { params: queryParams });
+    return response.data;
+  }
+
+  async createMember(data: z.infer<typeof CreateMemberArgsSchema>): Promise<string> {
+    const response = await this.client.post('members', data);
+    return response.data;
+  }
+
+  // === STATISTIQUES ===
+  async getStats(type: string, year?: number, month?: number): Promise<any> {
+    const queryParams: any = {};
+    if (year) queryParams.year = year;
+    if (month) queryParams.month = month;
+
+    let endpoint = '';
+    switch (type) {
+      case 'ca':
+        endpoint = 'statistics/invoices/byyear';
+        break;
+      case 'topclients':
+        endpoint = 'statistics/thirdparties/top';
+        break;
+      case 'proposals':
+        endpoint = 'statistics/proposals/bystatus';
+        break;
+      case 'payments':
+        endpoint = 'statistics/payments/bymonth';
+        break;
+      default:
+        throw new Error(`Type de statistique non supporté: ${type}`);
+    }
+
+    const response = await this.client.get(endpoint, { params: queryParams });
+    return response.data;
+  }
+
+  // === DOCUMENTS AVANCÉS ===
+  async downloadDocument(modulepart: string, originalFile: string): Promise<{ filename: string; content: string; mimetype: string }> {
+    const response = await this.client.get('documents/download', {
+      params: {
+        modulepart,
+        original_file: originalFile,
+      },
+    });
+    return response.data;
+  }
+
+  async deleteDocument(modulepart: string, originalFile: string): Promise<void> {
+    await this.client.delete(`documents`, {
+      params: {
+        modulepart,
+        original_file: originalFile,
+      },
+    });
+  }
+
+  async listDocumentsForObject(modulepart: string, id: string): Promise<any[]> {
+    const response = await this.client.get(`documents`, {
+      params: {
+        modulepart,
+        id,
+        sortfield: 't.name',
+        sortorder: 'ASC',
+      },
+    });
+    return response.data;
+  }
+
+  async generatePdf(module: string, id: string): Promise<{ filename: string; content: string }> {
+    let endpoint = '';
+    switch (module) {
+      case 'invoice':
+        endpoint = `invoices/${id}/builddoc`;
+        break;
+      case 'propal':
+        endpoint = `proposals/${id}/builddoc`;
+        break;
+      case 'order':
+        endpoint = `orders/${id}/builddoc`;
+        break;
+      case 'contract':
+        endpoint = `contracts/${id}/builddoc`;
+        break;
+      default:
+        throw new Error(`Module non supporté: ${module}`);
+    }
+
+    const response = await this.client.put(endpoint, {});
+    return response.data;
+  }
+
+  async sendDocumentByEmail(module: string, id: string, sendto: string, subject?: string, message?: string): Promise<void> {
+    let endpoint = '';
+    switch (module) {
+      case 'invoice':
+        endpoint = `invoices/${id}/sendbyemail`;
+        break;
+      case 'propal':
+        endpoint = `proposals/${id}/sendbyemail`;
+        break;
+      case 'order':
+        endpoint = `orders/${id}/sendbyemail`;
+        break;
+      default:
+        throw new Error(`Module non supporté: ${module}`);
+    }
+
+    await this.client.post(endpoint, {
+      sendto,
+      subject: subject || `Document ${module} #${id}`,
+      message: message || `Veuillez trouver ci-joint le document.`,
+    });
+  }
+
+  // === GROUPES & PERMISSIONS ===
+  async listUserGroups(limit?: number): Promise<any[]> {
+    const response = await this.client.get('usergroups', { params: { limit: limit || 100 } });
+    return response.data;
+  }
+
+  async getUserGroup(id: string): Promise<any> {
+    const response = await this.client.get(`usergroups/${id}`);
+    return response.data;
+  }
+
+  async createUserGroup(name: string, note?: string): Promise<string> {
+    const response = await this.client.post('usergroups', {
+      nom: name,
+      note: note || '',
+    });
+    return response.data;
+  }
+
+  async updateUserGroup(id: string, name?: string, note?: string): Promise<void> {
+    await this.client.put(`usergroups/${id}`, {
+      nom: name,
+      note,
+    });
+  }
+
+  async deleteUserGroup(id: string): Promise<void> {
+    await this.client.delete(`usergroups/${id}`);
+  }
+
+  async addUserToGroup(groupId: string, userId: string): Promise<void> {
+    await this.client.post(`usergroups/${groupId}/users/${userId}`, {});
+  }
+
+  async removeUserFromGroup(groupId: string, userId: string): Promise<void> {
+    await this.client.delete(`usergroups/${groupId}/users/${userId}`);
+  }
+
+  async setUserRights(userId: string, module: string, permission: string, value: string): Promise<void> {
+    // Note: Dolibarr API pour les droits peut varier selon la version
+    // Cette méthode peut nécessiter un endpoint custom ou un module spécifique
+    await this.client.post(`users/${userId}/setRights`, {
+      module,
+      permission,
+      value,
+    });
+  }
+
+  async getAuditLogs(userId?: string, action?: string, limit?: number, dateStart?: number, dateEnd?: number): Promise<any[]> {
+    // Note: Nécessite le module "EventOrganization" ou un module audit personnalisé
+    const params: any = { limit: limit || 100 };
+    if (userId) params.fk_user = userId;
+    if (action) params.code = action;
+    if (dateStart) params.date_start = dateStart;
+    if (dateEnd) params.date_end = dateEnd;
+
+    const response = await this.client.get('events', { params });
+    return response.data;
+  }
+
+  // === MULTI-ENTITÉS & DEVISES ===
+  async listEntities(limit?: number): Promise<any[]> {
+    const response = await this.client.get('multicompany/entities', { params: { limit: limit || 100 } });
+    return response.data;
+  }
+
+  async getEntity(id: string): Promise<any> {
+    const response = await this.client.get(`multicompany/entities/${id}`);
+    return response.data;
+  }
+
+  async createEntity(label: string, description?: string): Promise<string> {
+    const response = await this.client.post('multicompany/entities', {
+      label,
+      description: description || '',
+    });
+    return response.data;
+  }
+
+  async listCurrencies(active?: string): Promise<any[]> {
+    const params: any = {};
+    if (active) params.active = active;
+    const response = await this.client.get('setup/dictionary/currencies', { params });
+    return response.data;
+  }
+
+  async convertCurrency(amount: number, fromCurrency: string, toCurrency: string, date?: number): Promise<any> {
+    // Note: Dolibarr utilise des taux de change configurés dans setup/dictionary/currency_rate
+    const params: any = {
+      amount,
+      from: fromCurrency,
+      to: toCurrency,
+    };
+    if (date) params.date = date;
+
+    const response = await this.client.get('setup/dictionary/convert_currency', { params });
+    return response.data;
+  }
+
+  // === CALENDRIER & ABSENCES ===
+  async listHolidays(userId?: string, status?: string, year?: number, limit?: number): Promise<any[]> {
+    const params: any = { limit: limit || 100 };
+    if (userId) params.fk_user = userId;
+    if (status) params.statut = status;
+    if (year) params.year = year;
+
+    const response = await this.client.get('holidays', { params });
+    return response.data;
+  }
+
+  async getHoliday(id: string): Promise<any> {
+    const response = await this.client.get(`holidays/${id}`);
+    return response.data;
+  }
+
+  async createHoliday(data: any): Promise<string> {
+    const response = await this.client.post('holidays', data);
+    return response.data;
+  }
+
+  async validateHoliday(id: string, approve: boolean): Promise<void> {
+    const action = approve ? 'approve' : 'refuse';
+    await this.client.post(`holidays/${id}/${action}`, {});
+  }
+
+  async deleteHoliday(id: string): Promise<void> {
+    await this.client.delete(`holidays/${id}`);
+  }
+
+  async createResourceBooking(resourceId: string, userId: string, dateStart: number, dateEnd: number, note?: string): Promise<string> {
+    // Note: Nécessite le module "Resource" activé dans Dolibarr
+    const response = await this.client.post('resources/bookings', {
+      fk_resource: resourceId,
+      fk_user: userId,
+      date_start: dateStart,
+      date_end: dateEnd,
+      note: note || '',
+    });
+    return response.data;
+  }
+
+  async listResourceBookings(resourceId?: string, userId?: string): Promise<any[]> {
+    const params: any = {};
+    if (resourceId) params.fk_resource = resourceId;
+    if (userId) params.fk_user = userId;
+
+    const response = await this.client.get('resources/bookings', { params });
+    return response.data;
+  }
+
+  // === ABONNEMENTS (Subscriptions) ===
+  async listSubscriptions(thirdpartyId?: string, status?: string, limit?: number): Promise<any[]> {
+    const params: any = { limit: limit || 100 };
+    if (thirdpartyId) params.socid = thirdpartyId;
+    if (status) params.statut = status;
+
+    const response = await this.client.get('subscriptions', { params });
+    return response.data;
+  }
+
+  async getSubscription(id: string): Promise<any> {
+    const response = await this.client.get(`subscriptions/${id}`);
+    return response.data;
+  }
+
+  async createSubscription(data: any): Promise<string> {
+    const response = await this.client.post('subscriptions', data);
+    return response.data;
+  }
+
+  async renewSubscription(id: string, duration: number): Promise<void> {
+    await this.client.post(`subscriptions/${id}/renew`, {
+      duration,
+    });
+  }
+
+  async cancelSubscription(id: string, note?: string): Promise<void> {
+    await this.client.post(`subscriptions/${id}/cancel`, {
+      note: note || '',
+    });
   }
 }
 

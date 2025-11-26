@@ -702,3 +702,379 @@ export const CreateExpenseReportArgsSchema = z.object({
   note_private: z.string().optional(),
   note_public: z.string().optional(),
 });
+
+// === TIME ENTRIES (Temps passé sur tâches) ===
+export const TimeEntrySchema = z.object({
+  id: z.string(),
+  fk_task: z.string().optional(),
+  fk_user: z.string().optional(),
+  task_date: z.number().nullable().optional(),
+  task_duration: z.number().nullable().optional(),
+  note: z.string().nullable().optional(),
+  thm: z.number().nullable().optional(),
+}).passthrough();
+
+export const ListTimeEntriesArgsSchema = z.object({
+  project_id: z.string().optional(),
+  task_id: z.string().optional(),
+  user_id: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const ListTasksForProjectArgsSchema = z.object({
+  project_id: z.string().min(1, 'L\'ID du projet est requis'),
+});
+
+export type TimeEntry = z.infer<typeof TimeEntrySchema>;
+
+// === OPPORTUNITÉS / LEADS ===
+export const LeadSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  lastname: z.string().optional(),
+  firstname: z.string().optional(),
+  society: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  fk_soc: z.string().nullable().optional(),
+  fk_project: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  amount_guess: z.number().nullable().optional(),
+  date_closure: z.number().nullable().optional(),
+}).passthrough();
+
+export const ListLeadsArgsSchema = z.object({
+  status: z.string().optional(),
+  thirdparty_id: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const GetLeadArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'opportunité est requis'),
+});
+
+export const CreateLeadArgsSchema = z.object({
+  lastname: z.string().min(1, 'Le nom est requis'),
+  firstname: z.string().optional(),
+  society: z.string().optional(),
+  email: z.string().email().optional(),
+  phone: z.string().optional(),
+  fk_soc: z.string().optional(),
+  fk_project: z.string().optional(),
+  amount_guess: z.number().optional(),
+  status: z.enum(['0', '1', '2', '3']).optional().describe('0=Prospect, 1=Qualifié, 2=Proposition, 3=Négociation'),
+});
+
+export const UpdateLeadArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'opportunité est requis'),
+  status: z.enum(['0', '1', '2', '3']).optional(),
+  fk_project: z.string().optional(),
+  amount_guess: z.number().optional(),
+  date_closure: z.number().optional(),
+});
+
+export type Lead = z.infer<typeof LeadSchema>;
+
+// === PAIEMENTS (Payments) ===
+export const PaymentSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  datep: z.number().nullable().optional(),
+  amount: z.number().nullable().optional(),
+  fk_account: z.string().nullable().optional(),
+  num_payment: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListPaymentsArgsSchema = z.object({
+  invoice_id: z.string().optional(),
+  thirdparty_id: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreatePaymentArgsSchema = z.object({
+  invoice_id: z.string().min(1, 'L\'ID de la facture est requis'),
+  datepaye: z.number().int().positive(),
+  amount: z.number().positive().min(0.01, 'Le montant doit être positif'),
+  paiementcode: z.string().default('LIQ'),
+  num_payment: z.string().optional(),
+  comment: z.string().optional(),
+  accountid: z.string().optional(),
+});
+
+export type Payment = z.infer<typeof PaymentSchema>;
+
+// === PROPOSITIONS AVANCÉES ===
+export const ValidateProposalArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la proposition est requis'),
+  notrigger: z.number().optional().default(0),
+});
+
+export const CloseProposalArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la proposition est requis'),
+  status: z.enum(['2', '3']).describe('2=Signée/Acceptée, 3=Refusée'),
+  note: z.string().optional(),
+});
+
+// === COMMANDES AVANCÉES ===
+export const ValidateOrderArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la commande est requis'),
+  idwarehouse: z.string().optional(),
+  notrigger: z.number().optional().default(0),
+});
+
+export const CloseOrderArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de la commande est requis'),
+  note: z.string().optional(),
+});
+
+export const ShipOrderArgsSchema = z.object({
+  order_id: z.string().min(1, 'L\'ID de la commande est requis'),
+  date_delivery: z.number().int().positive().optional(),
+});
+
+// === TÂCHES AVANCÉES ===
+export const AssignTaskArgsSchema = z.object({
+  task_id: z.string().min(1, 'L\'ID de la tâche est requis'),
+  user_id: z.string().min(1, 'L\'ID de l\'utilisateur est requis'),
+  percentage: z.number().min(0).max(100).optional().describe('Pourcentage d\'affectation'),
+});
+
+// === MEMBRES/ADHÉRENTS (Members) ===
+export const MemberSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  civility_code: z.string().nullable().optional(),
+  firstname: z.string().optional(),
+  lastname: z.string().optional(),
+  email: z.string().nullable().optional(),
+  login: z.string().nullable().optional(),
+  statut: z.string().nullable().optional(),
+  morphy: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListMembersArgsSchema = z.object({
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateMemberArgsSchema = z.object({
+  firstname: z.string().min(1, 'Le prénom est requis'),
+  lastname: z.string().min(1, 'Le nom est requis'),
+  email: z.string().email().optional(),
+  morphy: z.enum(['phy', 'mor']).default('phy').describe('phy=Personne physique, mor=Personne morale'),
+  typeid: z.string().optional(),
+  civility_code: z.string().optional(),
+});
+
+export type Member = z.infer<typeof MemberSchema>;
+
+// === STATISTIQUES ===
+export const GetStatsArgsSchema = z.object({
+  type: z.enum(['ca', 'topclients', 'proposals', 'payments']),
+  year: z.number().int().optional(),
+  month: z.number().int().min(1).max(12).optional(),
+});
+
+// === DOCUMENTS AVANCÉS ===
+export const DownloadDocumentArgsSchema = z.object({
+  modulepart: z.string().min(1, 'Le type de module est requis'),
+  original_file: z.string().min(1, 'Le chemin du fichier est requis'),
+});
+
+export const DeleteDocumentArgsSchema = z.object({
+  modulepart: z.string().min(1, 'Le type de module est requis'),
+  original_file: z.string().min(1, 'Le chemin du fichier est requis'),
+});
+
+export const ListDocumentsForObjectArgsSchema = z.object({
+  modulepart: z.string().min(1, 'Le type de module est requis (invoice, propal, order, etc.)'),
+  id: z.string().min(1, 'L\'ID de l\'objet est requis'),
+});
+
+export const GeneratePdfArgsSchema = z.object({
+  module: z.enum(['invoice', 'propal', 'order', 'contract']),
+  id: z.string().min(1, 'L\'ID de l\'objet est requis'),
+});
+
+export const SendDocumentByEmailArgsSchema = z.object({
+  module: z.enum(['invoice', 'propal', 'order']),
+  id: z.string().min(1, 'L\'ID de l\'objet est requis'),
+  sendto: z.string().email('Email invalide'),
+  subject: z.string().optional(),
+  message: z.string().optional(),
+});
+
+// === GROUPES & PERMISSIONS ===
+export const UserGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  note: z.string().nullable().optional(),
+  members: z.array(z.string()).optional(),
+}).passthrough();
+
+export const ListUserGroupsArgsSchema = z.object({
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateUserGroupArgsSchema = z.object({
+  name: z.string().min(1, 'Le nom du groupe est requis'),
+  note: z.string().optional(),
+});
+
+export const UpdateUserGroupArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID du groupe est requis'),
+  name: z.string().optional(),
+  note: z.string().optional(),
+});
+
+export const AddUserToGroupArgsSchema = z.object({
+  group_id: z.string().min(1, 'L\'ID du groupe est requis'),
+  user_id: z.string().min(1, 'L\'ID de l\'utilisateur est requis'),
+});
+
+export const SetUserRightsArgsSchema = z.object({
+  user_id: z.string().min(1, 'L\'ID de l\'utilisateur est requis'),
+  module: z.string().min(1, 'Le nom du module est requis'),
+  permission: z.string().min(1, 'La permission est requise'),
+  value: z.enum(['0', '1']),
+});
+
+export const GetAuditLogsArgsSchema = z.object({
+  user_id: z.string().optional(),
+  action: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+  date_start: z.number().int().optional(),
+  date_end: z.number().int().optional(),
+});
+
+export type UserGroup = z.infer<typeof UserGroupSchema>;
+
+// === MULTI-ENTITÉS & DEVISES ===
+export const EntitySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListEntitiesArgsSchema = z.object({
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateEntityArgsSchema = z.object({
+  label: z.string().min(1, 'Le nom de l\'entité est requis'),
+  description: z.string().optional(),
+});
+
+export const CurrencySchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  unicode: z.string().optional(),
+}).passthrough();
+
+export const ListCurrenciesArgsSchema = z.object({
+  active: z.enum(['0', '1']).optional(),
+});
+
+export const ConvertCurrencyArgsSchema = z.object({
+  amount: z.number().min(0, 'Le montant doit être positif'),
+  from_currency: z.string().length(3, 'Code devise à 3 lettres (EUR, USD...)'),
+  to_currency: z.string().length(3, 'Code devise à 3 lettres'),
+  date: z.number().int().optional(),
+});
+
+export type Entity = z.infer<typeof EntitySchema>;
+export type Currency = z.infer<typeof CurrencySchema>;
+
+// === CALENDRIER & ABSENCES ===
+export const HolidaySchema = z.object({
+  id: z.string(),
+  fk_user: z.string().optional(),
+  date_debut: z.number().nullable().optional(),
+  date_fin: z.number().nullable().optional(),
+  halfday: z.number().nullable().optional(),
+  statut: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListHolidaysArgsSchema = z.object({
+  user_id: z.string().optional(),
+  status: z.string().optional(),
+  year: z.number().int().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateHolidayArgsSchema = z.object({
+  fk_user: z.string().min(1, 'L\'ID utilisateur est requis'),
+  date_debut: z.number().int().positive().min(1, 'Date de début requise'),
+  date_fin: z.number().int().positive().min(1, 'Date de fin requise'),
+  halfday: z.enum(['0', '1', '2']).optional().describe('0=Journée entière, 1=Matin, 2=Après-midi'),
+  fk_type: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export const ValidateHolidayArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'absence est requis'),
+  approve: z.boolean().default(true),
+});
+
+export const ResourceBookingSchema = z.object({
+  id: z.string(),
+  fk_resource: z.string().optional(),
+  fk_user: z.string().optional(),
+  date_start: z.number().nullable().optional(),
+  date_end: z.number().nullable().optional(),
+  note: z.string().nullable().optional(),
+}).passthrough();
+
+export const CreateResourceBookingArgsSchema = z.object({
+  resource_id: z.string().min(1, 'L\'ID de la ressource est requis'),
+  user_id: z.string().min(1, 'L\'ID utilisateur est requis'),
+  date_start: z.number().int().positive(),
+  date_end: z.number().int().positive(),
+  note: z.string().optional(),
+});
+
+export type Holiday = z.infer<typeof HolidaySchema>;
+export type ResourceBooking = z.infer<typeof ResourceBookingSchema>;
+
+// === ABONNEMENTS (Subscriptions) ===
+export const SubscriptionSchema = z.object({
+  id: z.string(),
+  ref: z.string().optional(),
+  fk_soc: z.string().optional(),
+  fk_product: z.string().optional(),
+  date_start: z.number().nullable().optional(),
+  date_end: z.number().nullable().optional(),
+  amount: z.number().nullable().optional(),
+  status: z.string().nullable().optional(),
+}).passthrough();
+
+export const ListSubscriptionsArgsSchema = z.object({
+  thirdparty_id: z.string().optional(),
+  status: z.string().optional(),
+  limit: z.number().int().positive().optional(),
+});
+
+export const CreateSubscriptionArgsSchema = z.object({
+  socid: z.string().min(1, 'L\'ID du tiers est requis'),
+  fk_product: z.string().optional(),
+  date_start: z.number().int().positive(),
+  date_end: z.number().int().positive().optional(),
+  amount: z.number().positive(),
+  note: z.string().optional(),
+  recurring: z.boolean().optional(),
+  frequency: z.enum(['monthly', 'quarterly', 'yearly']).optional(),
+});
+
+export const RenewSubscriptionArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'abonnement est requis'),
+  duration: z.number().int().positive().default(12).describe('Durée en mois'),
+});
+
+export const CancelSubscriptionArgsSchema = z.object({
+  id: z.string().min(1, 'L\'ID de l\'abonnement est requis'),
+  note: z.string().optional(),
+});
+
+export type Subscription = z.infer<typeof SubscriptionSchema>;
