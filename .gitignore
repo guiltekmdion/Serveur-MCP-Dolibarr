@@ -6,3 +6,19 @@ coverage/
 .vscode/
 *.log
 logs/
+
+# Temporary test files
+test-*.js
+*-test.js
+*.tmp
+*.temp
+
+# Swagger/API temporary docs
+swagger-*.json
+*-endpoints.txt
+mcp-test.json
+
+# Temporary documentation
+*-V2.md
+IMPLEMENTATION-SUMMARY.md
+.cleanup-notes.md
