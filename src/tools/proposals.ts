@@ -101,13 +101,15 @@ export const addProposalLineTool = {
     properties: {
       proposal_id: { type: 'string', description: 'ID du devis' },
       fk_product: { type: 'string', description: 'ID du produit/service (optionnel si desc fourni)' },
+      product_id: { type: 'string', description: 'Alias pour fk_product - ID du produit/service' },
       desc: { type: 'string', description: 'Description de la ligne (utilisée si fk_product non fourni)' },
       qty: { type: 'number', description: 'Quantité (défaut: 1)' },
       subprice: { type: 'number', description: 'Prix unitaire HT' },
+      price: { type: 'number', description: 'Alias pour subprice - Prix unitaire HT' },
       tva_tx: { type: 'number', description: 'Taux de TVA en % (ex: 20 pour 20%)' },
       product_type: { type: 'number', description: 'Type: 0=produit physique, 1=service (défaut: 1)' },
     },
-    required: ['proposal_id', 'subprice'],
+    required: ['proposal_id'],
   },
 };
 
@@ -132,6 +134,7 @@ export const updateProposalLineTool = {
       desc: { type: 'string', description: 'Nouvelle description' },
       qty: { type: 'number', description: 'Nouvelle quantité' },
       subprice: { type: 'number', description: 'Nouveau prix unitaire HT' },
+      price: { type: 'number', description: 'Alias pour subprice - Nouveau prix unitaire HT' },
       tva_tx: { type: 'number', description: 'Nouveau taux de TVA en %' },
     },
     required: ['line_id'],

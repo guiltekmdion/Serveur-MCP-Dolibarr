@@ -387,9 +387,35 @@ export class DolibarrClient {
 
   async addProposalLine(data: z.infer<typeof AddProposalLineArgsSchema>): Promise<string> {
     try {
-      const { proposal_id, ...lineData } = AddProposalLineArgsSchema.parse(data);
+      const validated = AddProposalLineArgsSchema.parse(data);
+      const { proposal_id, ...lineData } = validated;
+      
+      // Log pour debug
+      logger.info(`[addProposalLine] Sending to /proposals/${proposal_id}/lines:`, JSON.stringify(lineData, null, 2));
+      
       const response = await this.client.post(`/proposals/${proposal_id}/lines`, lineData);
-      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+      
+      // Log la réponse
+      logger.info(`[addProposalLine] Response:`, JSON.stringify(response.data, null, 2));
+      
+      // Dolibarr peut retourner l'ID directement ou dans un objet
+      const responseData = response.data;
+      if (responseData === null || responseData === undefined) {
+        throw new Error('No result received from Dolibarr API');
+      }
+      
+      // Si c'est un nombre ou une string, c'est l'ID de la ligne créée
+      if (typeof responseData === 'number' || typeof responseData === 'string') {
+        return String(responseData);
+      }
+      
+      // Si c'est un objet avec un id
+      if (typeof responseData === 'object' && responseData.id) {
+        return String(responseData.id);
+      }
+      
+      // Sinon, on renvoie la réponse stringifiée pour debug
+      return JSON.stringify(responseData);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, 'addProposalLine');

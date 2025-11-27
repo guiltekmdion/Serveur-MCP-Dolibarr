@@ -111,22 +111,46 @@ export const ListProposalsArgsSchema = z.object({
   limit: z.number().int().positive().optional(),
 });
 
-export const AddProposalLineArgsSchema = z.object({
+// Schéma de base pour les entrées utilisateur (accepte les deux formats)
+const AddProposalLineInputSchema = z.object({
   proposal_id: z.string().min(1, 'L\'ID du devis est requis'),
-  fk_product: z.union([z.string(), z.number()]).optional().transform(v => v ? String(v) : undefined),
+  // Accepte fk_product OU product_id
+  fk_product: z.union([z.string(), z.number()]).optional(),
+  product_id: z.union([z.string(), z.number()]).optional(), // Alias pour fk_product
   desc: z.string().optional(),
   qty: z.number().positive().default(1),
-  subprice: z.number().optional(), // Prix unitaire HT
+  // Accepte subprice OU price
+  subprice: z.number().optional(),
+  price: z.number().optional(), // Alias pour subprice
   tva_tx: z.number().optional(), // Taux de TVA en %
   product_type: z.number().optional().default(1), // 0=produit, 1=service
+});
+
+// Schéma transformé pour l'API Dolibarr (normalise les noms de champs)
+export const AddProposalLineArgsSchema = AddProposalLineInputSchema.transform((data) => {
+  const { product_id, price, fk_product, subprice, ...rest } = data;
+  return {
+    ...rest,
+    // Utiliser fk_product ou product_id (priorité à fk_product)
+    fk_product: fk_product ? String(fk_product) : (product_id ? String(product_id) : undefined),
+    // Utiliser subprice ou price (priorité à subprice)
+    subprice: subprice ?? price,
+  };
 });
 
 export const UpdateProposalLineArgsSchema = z.object({
   line_id: z.string().min(1, 'L\'ID de la ligne est requis'),
   desc: z.string().optional(),
   qty: z.number().positive().optional(),
-  subprice: z.number().optional(), // Prix unitaire HT (pas "price" sur les lignes)
+  subprice: z.number().optional(), // Prix unitaire HT
+  price: z.number().optional(), // Alias pour subprice
   tva_tx: z.number().optional(),
+}).transform((data) => {
+  const { price, subprice, ...rest } = data;
+  return {
+    ...rest,
+    subprice: subprice ?? price,
+  };
 });
 
 export const DeleteProposalLineArgsSchema = z.object({
