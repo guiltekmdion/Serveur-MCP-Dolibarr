@@ -8,9 +8,9 @@ const ConfigSchema = z.object({
   DOLIBARR_BASE_URL: z.string().url('URL de base Dolibarr invalide'),
   DOLIBARR_API_KEY: z.string().min(1, 'Clé API requise'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-  // Nouveaux paramètres de fiabilité
-  AXIOS_TIMEOUT: z.coerce.number().int().positive().default(30000), // 30s par défaut
-  MAX_RETRIES: z.coerce.number().int().min(0).default(3),
+  // Paramètres de performance optimisés
+  AXIOS_TIMEOUT: z.coerce.number().int().positive().default(15000), // 15s (réduit de 30s)
+  MAX_RETRIES: z.coerce.number().int().min(0).default(2), // 2 (réduit de 3)
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

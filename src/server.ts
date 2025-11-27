@@ -99,6 +99,9 @@ import * as Calendar from './tools/calendar.js';
 // Import Subscriptions
 import * as Subscriptions from './tools/subscriptions.js';
 
+// Import dolibarrClient une seule fois au démarrage (performance)
+import { dolibarrClient } from './services/dolibarr.js';
+
 class DolibarrMcpServer {
   private server: Server;
 
@@ -364,35 +367,35 @@ class DolibarrMcpServer {
           'dolibarr_generate_pdf': Documents.handleGeneratePdf,
           'dolibarr_send_document_email': Documents.handleSendDocumentByEmail,
           // Permissions & Audit
-          'dolibarr_list_user_groups': (args) => Permissions.handlePermissionsRequest('dolibarr_list_user_groups', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_get_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_get_user_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_create_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_create_user_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_update_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_update_user_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_delete_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_delete_user_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_add_user_to_group': (args) => Permissions.handlePermissionsRequest('dolibarr_add_user_to_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_remove_user_from_group': (args) => Permissions.handlePermissionsRequest('dolibarr_remove_user_from_group', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_set_user_rights': (args) => Permissions.handlePermissionsRequest('dolibarr_set_user_rights', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_get_audit_logs': (args) => Permissions.handlePermissionsRequest('dolibarr_get_audit_logs', args, require('./services/dolibarr.js').dolibarrClient),
+          'dolibarr_list_user_groups': (args) => Permissions.handlePermissionsRequest('dolibarr_list_user_groups', args, dolibarrClient),
+          'dolibarr_get_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_get_user_group', args, dolibarrClient),
+          'dolibarr_create_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_create_user_group', args, dolibarrClient),
+          'dolibarr_update_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_update_user_group', args, dolibarrClient),
+          'dolibarr_delete_user_group': (args) => Permissions.handlePermissionsRequest('dolibarr_delete_user_group', args, dolibarrClient),
+          'dolibarr_add_user_to_group': (args) => Permissions.handlePermissionsRequest('dolibarr_add_user_to_group', args, dolibarrClient),
+          'dolibarr_remove_user_from_group': (args) => Permissions.handlePermissionsRequest('dolibarr_remove_user_from_group', args, dolibarrClient),
+          'dolibarr_set_user_rights': (args) => Permissions.handlePermissionsRequest('dolibarr_set_user_rights', args, dolibarrClient),
+          'dolibarr_get_audit_logs': (args) => Permissions.handlePermissionsRequest('dolibarr_get_audit_logs', args, dolibarrClient),
           // Multi-Entity & Currencies
-          'dolibarr_list_entities': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_list_entities', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_get_entity': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_get_entity', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_create_entity': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_create_entity', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_list_currencies': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_list_currencies', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_convert_currency': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_convert_currency', args, require('./services/dolibarr.js').dolibarrClient),
+          'dolibarr_list_entities': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_list_entities', args, dolibarrClient),
+          'dolibarr_get_entity': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_get_entity', args, dolibarrClient),
+          'dolibarr_create_entity': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_create_entity', args, dolibarrClient),
+          'dolibarr_list_currencies': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_list_currencies', args, dolibarrClient),
+          'dolibarr_convert_currency': (args) => MultiEntity.handleMultiEntityRequest('dolibarr_convert_currency', args, dolibarrClient),
           // Calendar & Holidays
-          'dolibarr_list_holidays': (args) => Calendar.handleCalendarRequest('dolibarr_list_holidays', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_get_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_get_holiday', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_create_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_create_holiday', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_validate_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_validate_holiday', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_delete_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_delete_holiday', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_create_resource_booking': (args) => Calendar.handleCalendarRequest('dolibarr_create_resource_booking', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_list_resource_bookings': (args) => Calendar.handleCalendarRequest('dolibarr_list_resource_bookings', args, require('./services/dolibarr.js').dolibarrClient),
+          'dolibarr_list_holidays': (args) => Calendar.handleCalendarRequest('dolibarr_list_holidays', args, dolibarrClient),
+          'dolibarr_get_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_get_holiday', args, dolibarrClient),
+          'dolibarr_create_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_create_holiday', args, dolibarrClient),
+          'dolibarr_validate_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_validate_holiday', args, dolibarrClient),
+          'dolibarr_delete_holiday': (args) => Calendar.handleCalendarRequest('dolibarr_delete_holiday', args, dolibarrClient),
+          'dolibarr_create_resource_booking': (args) => Calendar.handleCalendarRequest('dolibarr_create_resource_booking', args, dolibarrClient),
+          'dolibarr_list_resource_bookings': (args) => Calendar.handleCalendarRequest('dolibarr_list_resource_bookings', args, dolibarrClient),
           // Subscriptions
-          'dolibarr_list_subscriptions': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_list_subscriptions', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_get_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_get_subscription', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_create_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_create_subscription', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_renew_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_renew_subscription', args, require('./services/dolibarr.js').dolibarrClient),
-          'dolibarr_cancel_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_cancel_subscription', args, require('./services/dolibarr.js').dolibarrClient),
+          'dolibarr_list_subscriptions': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_list_subscriptions', args, dolibarrClient),
+          'dolibarr_get_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_get_subscription', args, dolibarrClient),
+          'dolibarr_create_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_create_subscription', args, dolibarrClient),
+          'dolibarr_renew_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_renew_subscription', args, dolibarrClient),
+          'dolibarr_cancel_subscription': (args) => Subscriptions.handleSubscriptionsRequest('dolibarr_cancel_subscription', args, dolibarrClient),
         };
 
         const handler = toolHandlers[request.params.name];

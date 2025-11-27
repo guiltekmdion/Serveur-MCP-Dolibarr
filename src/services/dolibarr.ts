@@ -131,13 +131,53 @@ import {
   SendDocumentByEmailArgsSchema,
 } from '../types/index.js';
 
+// Cache simple pour les requêtes GET fréquentes (TTL: 30 secondes)
+class SimpleCache {
+  private cache = new Map<string, { data: any; expires: number }>();
+  private ttl: number;
+
+  constructor(ttlSeconds = 30) {
+    this.ttl = ttlSeconds * 1000;
+  }
+
+  get(key: string): any | undefined {
+    const item = this.cache.get(key);
+    if (!item) return undefined;
+    if (Date.now() > item.expires) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return item.data;
+  }
+
+  set(key: string, data: any): void {
+    this.cache.set(key, { data, expires: Date.now() + this.ttl });
+  }
+
+  invalidate(pattern?: string): void {
+    if (!pattern) {
+      this.cache.clear();
+    } else {
+      for (const key of this.cache.keys()) {
+        if (key.includes(pattern)) {
+          this.cache.delete(key);
+        }
+      }
+    }
+  }
+}
+
 export class DolibarrClient {
   private client: AxiosInstance;
+  private cache = new SimpleCache(30); // Cache de 30 secondes
 
   constructor() {
     // Agent HTTPS pour accepter les certificats auto-signés
+    // keepAlive: true pour réutiliser les connexions TCP (performance)
     const httpsAgent = new https.Agent({
-      rejectUnauthorized: false
+      rejectUnauthorized: false,
+      keepAlive: true,
+      maxSockets: 10,
     });
 
     this.client = axios.create({
@@ -145,42 +185,57 @@ export class DolibarrClient {
       headers: {
         'DOLAPIKEY': config.DOLIBARR_API_KEY,
         'Accept': 'application/json',
+        'Connection': 'keep-alive',
       },
       timeout: config.AXIOS_TIMEOUT,
       httpsAgent: httpsAgent,
     });
 
-    // Configuration du retry automatique
+    // Configuration du retry automatique avec délais réduits
     (axiosRetry as any)(this.client, { 
       retries: config.MAX_RETRIES,
-      retryDelay: (axiosRetry as any).exponentialDelay,
+      retryDelay: (retryCount: number) => retryCount * 500, // 500ms, 1000ms (plus rapide)
       retryCondition: (error: AxiosError) => {
         return (axiosRetry as any).isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
       },
       onRetry: (retryCount: number, error: AxiosError, requestConfig: AxiosRequestConfig) => {
-        logger.warn(`Tentative de reconnexion #${retryCount} pour ${requestConfig.url}: ${error.message}`);
+        logger.warn(`Retry #${retryCount} for ${requestConfig.url}: ${error.message}`);
       }
     });
 
-    // Intercepteurs pour le logging
-    this.client.interceptors.request.use(request => {
-      logger.debug(`API Request: ${request.method?.toUpperCase()} ${request.url}`);
-      return request;
-    });
+    // Intercepteurs pour le logging (mode debug uniquement pour éviter l'overhead)
+    if (config.LOG_LEVEL === 'debug') {
+      this.client.interceptors.request.use(request => {
+        logger.debug(`API Request: ${request.method?.toUpperCase()} ${request.url}`);
+        return request;
+      });
 
-    this.client.interceptors.response.use(
-      response => {
-        logger.debug(`API Response: ${response.status} ${response.config.url}`);
-        return response;
-      },
-      error => {
-        logger.error(`API Error: ${error.message}`, { 
-          url: error.config?.url,
-          status: error.response?.status 
-        });
-        return Promise.reject(error);
-      }
-    );
+      this.client.interceptors.response.use(
+        response => {
+          logger.debug(`API Response: ${response.status} ${response.config.url}`);
+          return response;
+        },
+        error => {
+          logger.error(`API Error: ${error.message}`, { 
+            url: error.config?.url,
+            status: error.response?.status 
+          });
+          return Promise.reject(error);
+        }
+      );
+    } else {
+      // En mode non-debug, juste gérer les erreurs
+      this.client.interceptors.response.use(
+        response => response,
+        error => {
+          logger.error(`API Error: ${error.message}`, { 
+            url: error.config?.url,
+            status: error.response?.status 
+          });
+          return Promise.reject(error);
+        }
+      );
+    }
   }
 
   private handleError(error: unknown, context: string): never {
