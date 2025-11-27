@@ -15,9 +15,15 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
+// Variable pour le cache de la configuration
+let _config: Config | null = null;
+
 function loadConfig(): Config {
+  if (_config) return _config;
+  
   try {
-    return ConfigSchema.parse(process.env);
+    _config = ConfigSchema.parse(process.env);
+    return _config;
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Erreur de configuration critique :');
@@ -30,4 +36,10 @@ function loadConfig(): Config {
   }
 }
 
-export const config = loadConfig();
+// Export comme getter pour un chargement différé
+export const config = new Proxy({} as Config, {
+  get(_, prop: string) {
+    const cfg = loadConfig();
+    return cfg[prop as keyof Config];
+  }
+});
