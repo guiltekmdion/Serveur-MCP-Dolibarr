@@ -8,6 +8,30 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.4.0] - 2025-11-27
+
+### 🚀 Mise à Jour Stack Novembre 2025
+
+**Upgrade majeur des dépendances :**
+
+| Package | Avant | Après |
+|---------|-------|-------|
+| **Zod** | 3.22.4 | **4.1.13** |
+| **MCP SDK** | 1.0.4 | **1.23.0** |
+| **dotenv** | 16.4.7 | **17.2.3** |
+| **TypeScript** | 5.3.3 | **5.8.x** |
+| **ESLint** | 9.17.0 | **9.28.x** |
+| **Node.js** | 20 | **22 LTS** |
+
+**Changements notables :**
+
+- Migration **Zod 3 → Zod 4** : API `.issues` au lieu de `.errors`
+- Node.js **22 LTS** (Alpine) dans Docker
+- `npm ci --omit=dev` (nouvelle syntaxe npm)
+- Exigence minimale : Node.js >= 20.0.0
+
+---
+
 ## [1.3.1] - 2025-11-27
 
 ### 🔒 Correctifs de Sécurité

@@ -1,5 +1,5 @@
-# Use Node.js LTS Alpine image (latest patch version)
-FROM node:20.18-alpine AS builder
+# Use Node.js 22 LTS Alpine image (November 2025 standard)
+FROM node:22-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -18,7 +18,7 @@ COPY src ./src
 RUN npm run build
 
 # Production stage
-FROM node:20.18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -27,7 +27,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Create a non-root user
 RUN addgroup -S mcp && adduser -S mcp -G mcp

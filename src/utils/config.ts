@@ -27,8 +27,9 @@ function loadConfig(): Config {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Erreur de configuration critique :');
-      error.errors.forEach((err) => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`);
+      // Zod 4: utiliser .issues au lieu de .errors
+      error.issues.forEach((issue) => {
+        console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
       });
       process.exit(1);
     }
