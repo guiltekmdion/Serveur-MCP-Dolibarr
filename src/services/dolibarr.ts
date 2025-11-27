@@ -568,14 +568,22 @@ export class DolibarrClient {
   async createInvoiceFromProposal(proposalId: string): Promise<string> {
     try {
       const proposal = await this.getProposal(proposalId);
-      const response = await this.client.post('/invoices', {
-        socid: proposal.socid,
-        date: Date.now() / 1000,
-        fk_source: proposalId,
-        type: 0
-      });
+      
+      // Méthode correcte : créer la facture et la lier au devis
+      const response = await this.client.post('/invoices/createfromproposal/' + proposalId, {});
       return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
+      // Fallback si endpoint createfromproposal n'existe pas (anciennes versions)
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        const proposal = await this.getProposal(proposalId);
+        const response = await this.client.post('/invoices', {
+          socid: proposal.socid,
+          date: Math.floor(Date.now() / 1000),
+          linkedObjectsIds: { propal: [proposalId] },
+          type: 0
+        });
+        return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+      }
       this.handleError(error, `createInvoiceFromProposal(${proposalId})`);
     }
   }
@@ -861,134 +869,200 @@ export class DolibarrClient {
   }
 
   async createWarehouse(data: z.infer<typeof CreateWarehouseArgsSchema>): Promise<string> {
-    const response = await this.client.post('warehouses', data);
-    return response.data;
+    try {
+      const validated = CreateWarehouseArgsSchema.parse(data);
+      const response = await this.client.post('/warehouses', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createWarehouse');
+    }
   }
 
   // === FOURNISSEURS (Suppliers) ===
   async listSupplierOrders(params: z.infer<typeof ListSupplierOrdersArgsSchema>): Promise<SupplierOrder[]> {
-    const queryParams: any = {
-      limit: params.limit || 20,
-      sortfield: 't.rowid',
-      sortorder: 'DESC',
-    };
+    try {
+      const queryParams: any = {
+        limit: params.limit || 20,
+        sortfield: 't.rowid',
+        sortorder: 'DESC',
+      };
 
-    if (params.thirdparty_id) {
-      queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
-    }
-    if (params.status) {
-      queryParams.status = params.status;
-    }
+      if (params.thirdparty_id) {
+        queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
+      }
+      if (params.status) {
+        queryParams.status = params.status;
+      }
 
-    const response = await this.client.get('supplierorders', { params: queryParams });
-    return response.data;
+      const response = await this.client.get('/supplierorders', { params: queryParams });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      this.handleError(error, 'listSupplierOrders');
+    }
   }
 
   async createSupplierOrder(data: z.infer<typeof CreateSupplierOrderArgsSchema>): Promise<string> {
-    const response = await this.client.post('supplierorders', data);
-    return response.data;
+    try {
+      const validated = CreateSupplierOrderArgsSchema.parse(data);
+      const response = await this.client.post('/supplierorders', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createSupplierOrder');
+    }
   }
 
   async listSupplierInvoices(params: z.infer<typeof ListSupplierInvoicesArgsSchema>): Promise<SupplierInvoice[]> {
-    const queryParams: any = {
-      limit: params.limit || 20,
-      sortfield: 't.rowid',
-      sortorder: 'DESC',
-    };
+    try {
+      const queryParams: any = {
+        limit: params.limit || 20,
+        sortfield: 't.rowid',
+        sortorder: 'DESC',
+      };
 
-    if (params.thirdparty_id) {
-      queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
-    }
-    if (params.status) {
-      queryParams.status = params.status;
-    }
+      if (params.thirdparty_id) {
+        queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
+      }
+      if (params.status) {
+        queryParams.status = params.status;
+      }
 
-    const response = await this.client.get('supplierinvoices', { params: queryParams });
-    return response.data;
+      const response = await this.client.get('/supplierinvoices', { params: queryParams });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      this.handleError(error, 'listSupplierInvoices');
+    }
   }
 
   async createSupplierInvoice(data: z.infer<typeof CreateSupplierInvoiceArgsSchema>): Promise<string> {
-    const response = await this.client.post('supplierinvoices', data);
-    return response.data;
+    try {
+      const validated = CreateSupplierInvoiceArgsSchema.parse(data);
+      const response = await this.client.post('/supplierinvoices', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createSupplierInvoice');
+    }
   }
 
   // === CATÉGORIES (Tags) ===
   async listCategories(params: z.infer<typeof ListCategoriesArgsSchema>): Promise<Category[]> {
-    const queryParams: any = {
-      limit: params.limit || 50,
-      sortfield: 't.label',
-      sortorder: 'ASC',
-    };
+    try {
+      const queryParams: any = {
+        limit: params.limit || 50,
+        sortfield: 't.label',
+        sortorder: 'ASC',
+      };
 
-    if (params.type) {
-      queryParams.type = params.type;
+      if (params.type) {
+        queryParams.type = params.type;
+      }
+
+      const response = await this.client.get('/categories', { params: queryParams });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      this.handleError(error, 'listCategories');
     }
-
-    const response = await this.client.get('categories', { params: queryParams });
-    return response.data;
   }
 
   async linkCategory(data: z.infer<typeof LinkCategoryArgsSchema>): Promise<string> {
-    // L'API Dolibarr pour lier une catégorie dépend du type d'objet
-    // POST /categories/{id}/objects/{type}/{object_id}
-    const response = await this.client.post(
-      `categories/${data.category_id}/objects/${data.object_type}/${data.object_id}`,
-      {}
-    );
-    return response.data;
+    try {
+      const validated = LinkCategoryArgsSchema.parse(data);
+      // L'API Dolibarr pour lier une catégorie dépend du type d'objet
+      // POST /categories/{id}/objects/{type}/{object_id}
+      const response = await this.client.post(
+        `/categories/${validated.category_id}/objects/${validated.object_type}/${validated.object_id}`,
+        {}
+      );
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'linkCategory');
+    }
   }
 
   // === COMMUN (Common) ===
   async sendEmail(data: z.infer<typeof SendEmailArgsSchema>): Promise<string> {
-    // Utilisation de l'endpoint setup/checkemail ou similaire si disponible, 
-    // mais Dolibarr n'a pas toujours un endpoint générique simple pour envoyer un mail arbitraire via API REST standard.
-    // On va tenter d'utiliser /setup/checkemail qui est souvent utilisé pour tester l'envoi.
-    // Sinon, il faudrait créer un événement ou utiliser un module externe.
-    // NOTE: L'API standard est limitée pour l'envoi d'email "libre".
-    // On va utiliser une astuce via un endpoint existant ou simuler.
-    // Pour l'instant, on va assumer que l'utilisateur a activé un module ou que l'on utilise une commande système si possible,
-    // mais via REST, le plus proche est souvent lié aux documents.
+    // NOTE: L'API REST Dolibarr standard n'a pas d'endpoint générique pour l'envoi d'emails.
+    // Options possibles:
+    // 1. Créer un événement agenda avec notification email
+    // 2. Utiliser l'envoi lié à un document (facture, devis, etc.)
+    // 3. Utiliser un module externe ou webhook
     
-    // Alternative: POST /setup/checkemail (test email)
-    // Ce n'est pas idéal pour de la prod mais ça dépanne.
-    // Une meilleure approche est de créer un événement agenda avec email, mais c'est complexe.
-    
-    // Essayons l'endpoint de test qui est souvent ouvert aux admins.
-    const response = await this.client.post('setup/checkemail', {
-        sendto: data.to,
-        subject: data.subject,
-        message: data.message,
-        from: data.from
-    });
-    return "Email envoyé (via test endpoint)";
+    // On crée un événement agenda de type email qui peut déclencher une notification
+    try {
+      const eventData = {
+        label: data.subject,
+        type_code: 'AC_EMAIL', // Type événement email
+        datep: Math.floor(Date.now() / 1000),
+        note: `To: ${data.to}\n\n${data.message}`,
+        percentage: 100, // Marqué comme fait
+      };
+      
+      const response = await this.client.post('agendaevents', eventData);
+      return `Email enregistré comme événement agenda #${response.data}. Note: L'envoi réel dépend de la configuration des notifications Dolibarr.`;
+    } catch (error) {
+      this.handleError(error, 'sendEmail');
+    }
   }
 
   async getServerInfo(): Promise<any> {
-    const response = await this.client.get('status');
-    return response.data;
+    try {
+      const response = await this.client.get('/status');
+      return response.data;
+    } catch (error) {
+      this.handleError(error, 'getServerInfo');
+    }
   }
 
   // === NOTES DE FRAIS (Create) ===
   async createExpenseReport(data: z.infer<typeof CreateExpenseReportArgsSchema>): Promise<string> {
-    const response = await this.client.post('expensereports', data);
-    return response.data;
+    try {
+      const validated = CreateExpenseReportArgsSchema.parse(data);
+      const response = await this.client.post('/expensereports', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createExpenseReport');
+    }
   }
 
   async listExpenseReports(params: z.infer<typeof ListExpenseReportsArgsSchema>): Promise<ExpenseReport[]> {
-    const queryParams: any = {
-      limit: params.limit || 20,
-      sortfield: 't.rowid',
-      sortorder: 'DESC',
-    };
-    if (params.user_id) queryParams.sqlfilters = `(t.fk_user_author:=:${params.user_id})`;
-    if (params.status) queryParams.status = params.status;
-    const response = await this.client.get('expensereports', { params: queryParams });
-    return response.data;
+    try {
+      const queryParams: any = {
+        limit: params.limit || 20,
+        sortfield: 't.rowid',
+        sortorder: 'DESC',
+      };
+      if (params.user_id) queryParams.sqlfilters = `(t.fk_user_author:=:${params.user_id})`;
+      if (params.status) queryParams.status = params.status;
+      const response = await this.client.get('/expensereports', { params: queryParams });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      this.handleError(error, 'listExpenseReports');
+    }
   }
 
   async getExpenseReport(id: string): Promise<ExpenseReport> {
-    const response = await this.client.get(`expensereports/${id}`);
-    return response.data;
+    try {
+      const response = await this.client.get(`/expensereports/${id}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `getExpenseReport(${id})`);
+    }
   }
 
   // === AGENDA ===
@@ -998,20 +1072,37 @@ export class DolibarrClient {
       sortfield: 't.id',
       sortorder: 'DESC',
     };
-    if (params.thirdparty_id) queryParams.sqlfilters = `(t.fk_soc:=:${params.thirdparty_id})`;
-    if (params.user_id) queryParams.sqlfilters = `(t.fk_user_author:=:${params.user_id})`;
+    
+    // Construire les filtres SQL correctement (ne pas écraser)
+    const filters: string[] = [];
+    if (params.thirdparty_id) filters.push(`(t.fk_soc:=:${params.thirdparty_id})`);
+    if (params.user_id) filters.push(`(t.fk_user_author:=:${params.user_id})`);
+    if (filters.length > 0) {
+      queryParams.sqlfilters = filters.join(' AND ');
+    }
+    
     const response = await this.client.get('agendaevents', { params: queryParams });
     return response.data;
   }
 
   async getAgendaEvent(id: string): Promise<AgendaEvent> {
-    const response = await this.client.get(`agendaevents/${id}`);
-    return response.data;
+    try {
+      const response = await this.client.get(`/agendaevents/${id}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `getAgendaEvent(${id})`);
+    }
   }
 
   async createAgendaEvent(data: z.infer<typeof CreateAgendaEventArgsSchema>): Promise<string> {
-    const response = await this.client.post('agendaevents', data);
-    return response.data;
+    try {
+      const validated = CreateAgendaEventArgsSchema.parse(data);
+      const response = await this.client.post('/agendaevents', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createAgendaEvent');
+    }
   }
 
   // === CONTRATS ===
@@ -1227,14 +1318,39 @@ export class DolibarrClient {
   }
 
   async shipOrder(orderId: string, dateDelivery?: number): Promise<string> {
-    const shipmentData: any = {
-      origin_id: orderId,
-      origin_type: 'order',
-    };
-    if (dateDelivery) shipmentData.date_delivery = dateDelivery;
-    
-    const response = await this.client.post('shipments', shipmentData);
-    return response.data;
+    try {
+      // Récupérer la commande pour obtenir les lignes
+      const order = await this.getOrder(orderId);
+      
+      const shipmentData: any = {
+        socid: order.socid,
+        origin_id: orderId,
+        origin_type: 'commande',
+        date_delivery: dateDelivery || Math.floor(Date.now() / 1000),
+      };
+      
+      const response = await this.client.post('/shipments', shipmentData);
+      const shipmentId = z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+      
+      // Ajouter les lignes de la commande à l'expédition
+      if (order.lines && Array.isArray(order.lines)) {
+        for (const line of order.lines) {
+          try {
+            await this.client.post(`/shipments/${shipmentId}/lines`, {
+              fk_origin_line: line.id,
+              qty: line.qty,
+              fk_entrepot: line.fk_warehouse || '1', // Entrepôt par défaut si non spécifié
+            });
+          } catch (lineError) {
+            logger.warn(`Impossible d'ajouter la ligne ${line.id} à l'expédition: ${lineError}`);
+          }
+        }
+      }
+      
+      return shipmentId;
+    } catch (error) {
+      this.handleError(error, `shipOrder(${orderId})`);
+    }
   }
 
   // === TÂCHES AVANCÉES ===
