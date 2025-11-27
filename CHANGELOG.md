@@ -8,6 +8,25 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.3.1] - 2025-11-27
+
+### 🔒 Correctifs de Sécurité
+
+**Résolution des vulnérabilités CVE :**
+
+- 🔴 **CVE-2024-21538** (cross-spawn) : 7.0.3 → 7.0.5
+- 🔴 **CVE-2025-64756** (glob) : 10.4.2 → 11.1.0
+- 🟡 **CVE-2025-13466** (body-parser) : 2.2.0 → 2.2.1
+- 🟢 **CVE-2025-5889** (brace-expansion) : 2.0.1 → 2.0.2
+
+**Améliorations Docker :**
+
+- Mise à jour de l'image de base : `node:20-alpine` → `node:20.18-alpine`
+- Ajout de `overrides` dans package.json pour forcer les versions sécurisées
+- 0 vulnérabilités détectées après audit
+
+---
+
 ## [1.3.0] - 2025-11-27
 
 ### 🚀 Détection Intelligente des Modules (Commit `083c942`)
