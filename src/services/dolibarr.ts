@@ -167,9 +167,44 @@ class SimpleCache {
   }
 }
 
+// Mapping des endpoints API vers les modules Dolibarr requis
+const ENDPOINT_TO_MODULE: Record<string, { module: string; label: string }> = {
+  '/thirdparties': { module: 'societe', label: 'Tiers' },
+  '/contacts': { module: 'societe', label: 'Contacts' },
+  '/proposals': { module: 'propale', label: 'Propositions commerciales' },
+  '/orders': { module: 'commande', label: 'Commandes clients' },
+  '/invoices': { module: 'facture', label: 'Factures' },
+  '/products': { module: 'product', label: 'Produits/Services' },
+  '/projects': { module: 'projet', label: 'Projets' },
+  '/tasks': { module: 'projet', label: 'Tâches (Projets)' },
+  '/warehouses': { module: 'stock', label: 'Entrepôts' },
+  '/stockmovements': { module: 'stock', label: 'Mouvements de stock' },
+  '/shipments': { module: 'expedition', label: 'Expéditions' },
+  '/contracts': { module: 'contrat', label: 'Contrats' },
+  '/tickets': { module: 'ticket', label: 'Tickets (Support)' },
+  '/agendaevents': { module: 'agenda', label: 'Agenda' },
+  '/expensereports': { module: 'expensereport', label: 'Notes de frais' },
+  '/interventions': { module: 'ficheinter', label: 'Interventions' },
+  '/supplierorders': { module: 'fournisseur', label: 'Commandes fournisseurs' },
+  '/supplierinvoices': { module: 'fournisseur', label: 'Factures fournisseurs' },
+  '/categories': { module: 'categorie', label: 'Catégories' },
+  '/bankaccounts': { module: 'banque', label: 'Banques' },
+  '/members': { module: 'adherent', label: 'Adhérents' },
+  '/holidays': { module: 'holiday', label: 'Congés' },
+  '/leads': { module: 'projet', label: 'Opportunités (Projets)' },
+  '/users': { module: 'user', label: 'Utilisateurs' },
+  '/usergroups': { module: 'user', label: 'Groupes utilisateurs' },
+  '/documents': { module: 'ecm', label: 'Documents (GED)' },
+  '/multicompany': { module: 'multicompany', label: 'Multi-société' },
+  '/subscriptions': { module: 'adherent', label: 'Cotisations adhérents' },
+  '/resources': { module: 'resource', label: 'Ressources' },
+};
+
 export class DolibarrClient {
   private client: AxiosInstance;
   private cache = new SimpleCache(30); // Cache de 30 secondes
+  private activeModules: Set<string> | null = null; // Cache des modules actifs
+  private modulesChecked = false;
 
   constructor() {
     // Agent HTTPS pour accepter les certificats auto-signés
@@ -238,16 +273,132 @@ export class DolibarrClient {
     }
   }
 
+  /**
+   * Récupère la liste des modules actifs depuis Dolibarr
+   * Utilise /status qui retourne les modules activés
+   */
+  async fetchActiveModules(): Promise<Set<string>> {
+    if (this.activeModules && this.modulesChecked) {
+      return this.activeModules;
+    }
+
+    try {
+      const response = await this.client.get('/status');
+      const status = response.data;
+      
+      // Le endpoint /status retourne les modules dans différents formats selon la version
+      // On essaie de récupérer les modules actifs
+      const modules = new Set<string>();
+      
+      if (status.modules && typeof status.modules === 'object') {
+        // Format: { modules: { modulename: { enabled: true } } }
+        for (const [name, info] of Object.entries(status.modules as Record<string, any>)) {
+          if (info?.enabled || info === true || info === '1') {
+            modules.add(name.toLowerCase());
+          }
+        }
+      }
+      
+      // Ajouter les modules de base toujours actifs
+      ['user', 'societe', 'api'].forEach(m => modules.add(m));
+      
+      this.activeModules = modules;
+      this.modulesChecked = true;
+      
+      logger.info(`[Dolibarr] ${modules.size} modules actifs détectés`);
+      return modules;
+    } catch (error) {
+      // Si on ne peut pas récupérer les modules, on désactive la vérification
+      logger.warn('[Dolibarr] Impossible de récupérer la liste des modules actifs, vérification désactivée');
+      this.activeModules = null;
+      this.modulesChecked = true;
+      return new Set();
+    }
+  }
+
+  /**
+   * Vérifie si un module est actif avant d'appeler l'API
+   * Retourne un message d'erreur clair si le module n'est pas activé
+   */
+  async checkModuleActive(endpoint: string): Promise<void> {
+    // Trouver le module correspondant à l'endpoint
+    const endpointKey = Object.keys(ENDPOINT_TO_MODULE).find(key => 
+      endpoint.startsWith(key) || endpoint.includes(key.slice(1))
+    );
+    
+    if (!endpointKey) {
+      return; // Endpoint non mappé, on laisse passer
+    }
+    
+    const moduleInfo = ENDPOINT_TO_MODULE[endpointKey];
+    
+    // Récupérer les modules actifs (avec cache)
+    const activeModules = await this.fetchActiveModules();
+    
+    // Si on n'a pas pu récupérer les modules, on laisse passer
+    if (activeModules.size === 0) {
+      return;
+    }
+    
+    // Vérifier si le module est actif
+    if (!activeModules.has(moduleInfo.module)) {
+      throw new Error(
+        `Module Dolibarr "${moduleInfo.label}" (${moduleInfo.module}) non activé. ` +
+        `Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications → ${moduleInfo.label}.`
+      );
+    }
+  }
+
+  /**
+   * Wrapper pour les appels API avec vérification de module
+   */
+  private async apiCall<T>(
+    method: 'get' | 'post' | 'put' | 'delete',
+    endpoint: string,
+    data?: any,
+    options?: any
+  ): Promise<T> {
+    // Vérifier que le module est actif
+    await this.checkModuleActive(endpoint);
+    
+    // Effectuer l'appel
+    const response = await this.client[method](endpoint, data, options);
+    return response.data;
+  }
+
+  /**
+   * Trouve le module correspondant à un endpoint
+   */
+  private getModuleInfoFromEndpoint(endpoint: string): { module: string; label: string } | null {
+    const endpointKey = Object.keys(ENDPOINT_TO_MODULE).find(key => 
+      endpoint.includes(key.slice(1)) // Enlève le / initial pour la comparaison
+    );
+    return endpointKey ? ENDPOINT_TO_MODULE[endpointKey] : null;
+  }
+
   private handleError(error: unknown, context: string): never {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const data = error.response?.data;
-      const message = data?.error?.message || error.message;
+      const rawMessage = data?.error?.message || data?.error || error.message;
+      const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
       
       // Log full error details for debugging
       console.error(`[Dolibarr API] Full Error Data in ${context}:`, JSON.stringify(data, null, 2));
       
       logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
+      
+      // Détection intelligente de module non activé
+      const moduleNotEnabledPatterns = [
+        /module.*not.*enabled/i,
+        /module.*not.*activated/i,
+        /module.*désactivé/i,
+        /module.*non.*activé/i,
+        /not.*implemented/i,
+        /feature.*disabled/i,
+      ];
+      
+      const isModuleError = moduleNotEnabledPatterns.some(pattern => pattern.test(message));
       
       // Messages d'erreur explicites selon le code HTTP
       if (status === 401) {
@@ -259,14 +410,35 @@ export class DolibarrClient {
         throw new Error(`Dolibarr API Error (403): Droits insuffisants pour "${context}". L'utilisateur API n'a pas les permissions sur le module ${moduleHint}. Configurez les droits dans Dolibarr: Configuration → Utilisateurs → [votre utilisateur API] → Permissions.`);
       }
       if (status === 404) {
+        // Vérifier si c'est une erreur de module non trouvé vs ressource non trouvée
+        if (isModuleError || message.includes('API not found')) {
+          const moduleInfo = this.getModuleInfoFromEndpoint(context);
+          const moduleName = moduleInfo?.label || this.getModuleFromContext(context);
+          throw new Error(
+            `Module Dolibarr "${moduleName}" non disponible. ` +
+            `Vérifiez que le module est activé dans Dolibarr: Accueil → Configuration → Modules/Applications.`
+          );
+        }
         throw new Error(`Dolibarr API Error (404): Ressource non trouvée pour "${context}". Vérifiez que l'ID existe.`);
+      }
+      if (status === 500 && isModuleError) {
+        const moduleInfo = this.getModuleInfoFromEndpoint(context);
+        const moduleName = moduleInfo?.label || this.getModuleFromContext(context);
+        throw new Error(
+          `Module Dolibarr "${moduleName}" non activé ou mal configuré. ` +
+          `Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications.`
+        );
       }
       if (status === 500) {
         throw new Error(`Dolibarr API Error (500): Erreur interne du serveur Dolibarr. ${message}`);
       }
       if (status === 501) {
-        const moduleHint = this.getModuleFromContext(context);
-        throw new Error(`Dolibarr API Error (501): Module "${moduleHint}" non activé dans Dolibarr. Activez-le dans Configuration → Modules/Applications.`);
+        const moduleInfo = this.getModuleInfoFromEndpoint(context);
+        const moduleName = moduleInfo?.label || this.getModuleFromContext(context);
+        throw new Error(
+          `Module Dolibarr "${moduleName}" non activé. ` +
+          `Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications.`
+        );
       }
       
       throw new Error(`Dolibarr API Error (${status}): ${message}`);
