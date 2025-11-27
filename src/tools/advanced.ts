@@ -61,7 +61,7 @@ export async function handleUploadDocument(args: unknown) {
 // === PROJETS ===
 export const getProjectTool = {
   name: 'dolibarr_get_project',
-  description: 'Récupérer les détails d\'un projet',
+  description: 'Détails d\'un PROJET INTERNE (gestion de projet, pas un client). ⚠️ Pour les clients, utilisez dolibarr_get_thirdparty.',
   inputSchema: {
     type: 'object' as const,
     properties: { id: { type: 'string', description: 'ID du projet' } },
@@ -77,7 +77,7 @@ export async function handleGetProject(args: unknown) {
 
 export const listProjectsTool = {
   name: 'dolibarr_list_projects',
-  description: 'Lister et filtrer les projets',
+  description: 'Liste des PROJETS INTERNES (gestion de projet). ⚠️ Pour lister les clients, utilisez dolibarr_search_thirdparties. Pour le top clients, utilisez dolibarr_get_stats.',
   inputSchema: {
     type: 'object' as const,
     properties: {

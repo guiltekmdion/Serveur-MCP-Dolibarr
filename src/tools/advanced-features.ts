@@ -292,12 +292,12 @@ export async function handleCreateMember(args: unknown) {
 // === STATISTIQUES ===
 export const getStatsTool = {
   name: 'dolibarr_get_stats',
-  description: 'Obtient des statistiques. Types: ca (Chiffre d\'affaires), topclients (Top clients), proposals (Propositions par statut), payments (Paiements par mois).',
+  description: 'STATISTIQUES COMMERCIALES: topclients (meilleurs clients par CA), ca (chiffre d\'affaires mensuel), proposals (devis par statut), payments (paiements reçus). ⚠️ Pour chercher un client par nom, utilisez dolibarr_search_thirdparties.',
   inputSchema: {
     type: 'object' as const,
     properties: {
-      type: { type: 'string', description: 'Type de stats: ca, topclients, proposals, payments' },
-      year: { type: 'number', description: 'Année' },
+      type: { type: 'string', description: 'Type: topclients | ca | proposals | payments' },
+      year: { type: 'number', description: 'Année (ex: 2025)' },
       month: { type: 'number', description: 'Mois (1-12)' },
     },
     required: ['type'],

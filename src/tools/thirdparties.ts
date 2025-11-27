@@ -12,13 +12,13 @@ import {
  */
 export const getThirdPartyTool = {
   name: 'dolibarr_get_thirdparty',
-  description: 'Récupérer les détails d\'un tiers (client/prospect/fournisseur) par ID',
+  description: 'Récupérer les DÉTAILS COMPLETS d\'un CLIENT/PROSPECT/FOURNISSEUR par son ID (adresse, contacts, etc.)',
   inputSchema: {
     type: 'object' as const,
     properties: {
       id: {
         type: 'string',
-        description: 'L\'ID du tiers',
+        description: 'L\'ID du client/tiers',
       },
     },
     required: ['id'],
@@ -44,13 +44,13 @@ export async function handleGetThirdParty(args: unknown) {
  */
 export const searchThirdPartiesTool = {
   name: 'dolibarr_search_thirdparties',
-  description: 'Rechercher des tiers par nom',
+  description: 'Rechercher des CLIENTS, PROSPECTS ou FOURNISSEURS par nom. Pour le TOP clients par CA, utilisez dolibarr_get_stats avec type=topclients.',
   inputSchema: {
     type: 'object' as const,
     properties: {
       query: {
         type: 'string',
-        description: 'La requête de recherche (nom)',
+        description: 'Nom du client/fournisseur à rechercher',
       },
     },
     required: ['query'],
