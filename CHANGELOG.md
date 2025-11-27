@@ -8,6 +8,64 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ---
 
+## [1.3.0] - 2025-11-27
+
+### 🚀 Détection Intelligente des Modules (Commit `083c942`)
+
+**Système de détection automatique des modules Dolibarr :**
+
+- Mapping de 25+ endpoints vers leurs modules Dolibarr
+- Récupération des modules actifs via `/status` au démarrage
+- Vérification avant chaque appel API
+- Messages d'erreur clairs avec chemin de navigation Dolibarr
+
+**Exemple d'erreur :**
+```
+Module Dolibarr "Tickets (Support)" (ticket) non activé. 
+Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications.
+```
+
+### 🐛 Corrections Logiques Métier (Commit `49342ce`)
+
+**Corrections critiques :**
+- `createInvoiceFromProposal` : Utilise maintenant `/invoices/createfromproposal/{id}` avec fallback
+- `sendEmail` : Crée un événement agenda AC_EMAIL au lieu de setup/checkemail
+- `listAgendaEvents` : Les filtres thirdparty_id et user_id ne s'écrasent plus
+- `shipOrder` : Crée maintenant les lignes d'expédition depuis les lignes de commande
+
+**Gestion d'erreurs améliorée :**
+- Ajout de try/catch à 15+ méthodes (fournisseurs, catégories, notes de frais...)
+- Retour de tableaux vides pour les 404 sur les méthodes de liste
+- Validation Zod cohérente sur toutes les méthodes create/update
+
+### ⚡ Optimisations de Performance (Commit `98b4a6d`)
+
+**Améliorations significatives :**
+- Remplacement de `require()` par imports statiques (-50ms par appel)
+- HTTP Keep-Alive avec pool de 10 sockets
+- Cache simple de 30s pour les requêtes GET fréquentes
+- Timeout réduit de 30s à 15s (fail-fast)
+- Retries plus rapides (500ms au lieu d'exponential)
+- Logging conditionnel (debug mode uniquement)
+
+**Impact estimé : 50-70% plus rapide sur requêtes répétées**
+
+### 🐛 Correction Docker Build (Commit `2e0db5b`)
+
+- Chargement de configuration différé (lazy loading via Proxy)
+- Résout l'erreur "DOLIBARR_BASE_URL required" pendant le build Docker
+
+### 🐛 Alias de Paramètres API (Commit `cccc6c6`)
+
+**Compatibilité améliorée :**
+- `AddProposalLineArgsSchema` accepte maintenant :
+  - `product_id` OU `fk_product`
+  - `price` OU `subprice`
+- `UpdateProposalLineArgsSchema` accepte `price` comme alias de `subprice`
+- Transformation automatique vers les noms Dolibarr corrects
+
+---
+
 ## [1.2.0] - 2025-11-26
 
 ### 🚀 Modules Avancés Ajoutés (Commit `a6ba923`)
@@ -113,18 +171,18 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/)
 
 ## Roadmap Prévue
 
-### [1.3.0] - Q1 2025
+### [1.4.0] - Q1 2025
 - 🤖 Webhooks & Notifications temps réel
 - ⚡ Workflows automatisés
 - 📧 Templates d'emails personnalisables
 
-### [1.4.0] - Q2 2025
+### [1.5.0] - Q2 2025
 - 📥 Import CSV en masse
 - 📤 Export multi-formats (CSV, Excel, PDF)
 - 🗂️ Opérations groupées (bulk)
 - 🔍 Recherche avancée avec filtres
 
-### [1.5.0] - Q3 2025
+### [1.6.0] - Q3 2025
 - 📊 Dashboards BI intégrés
 - 📈 Prédictions IA
 - 🎯 KPIs personnalisables
