@@ -1,6 +1,6 @@
 services:
   dolibarr-mcp:
-    image: guiltekmdion/mcp-dolibarr:1.4.0
+    image: guiltekmdion/mcp-dolibarr:1.4.1
     container_name: dolibarr-mcp
     stdin_open: true # Required for STDIO
     tty: true        # Required for STDIO

@@ -327,6 +327,7 @@ class DolibarrMcpServer {
           'dolibarr_list_categories': Categories.handleListCategories,
           'dolibarr_link_category': Categories.handleLinkCategory,
           // Commun
+          'dolibarr_help': Common.handleHelpGuide,
           'dolibarr_send_email': Common.handleSendEmail,
           'dolibarr_get_server_info': Common.handleGetServerInfo,
           'dolibarr_create_expense_report': Common.handleCreateExpenseReport,

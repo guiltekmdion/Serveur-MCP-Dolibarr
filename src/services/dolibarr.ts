@@ -615,12 +615,28 @@ export class DolibarrClient {
   async addProposalLine(data: z.infer<typeof AddProposalLineArgsSchema>): Promise<string> {
     try {
       const validated = AddProposalLineArgsSchema.parse(data);
-      const { proposal_id, ...lineData } = validated;
+      const { proposal_id, fk_product, subprice, qty, tva_tx, desc, product_type } = validated;
+      
+      // Construire le payload selon l'API Dolibarr - utiliser POST /line (singulier) pour une seule ligne
+      // L'API attend les champs dans un format spécifique
+      const lineData: Record<string, unknown> = {
+        desc: desc || '',           // Description (obligatoire)
+        subprice: subprice || 0,    // Prix unitaire HT
+        qty: qty || 1,              // Quantité
+        tva_tx: tva_tx || 0,        // Taux TVA (doit être un nombre)
+        product_type: product_type ?? 1, // 0=produit, 1=service
+      };
+      
+      // Ajouter fk_product seulement si présent (doit être un entier)
+      if (fk_product) {
+        lineData.fk_product = parseInt(String(fk_product), 10);
+      }
       
       // Log pour debug
-      logger.info(`[addProposalLine] Sending to /proposals/${proposal_id}/lines:`, JSON.stringify(lineData, null, 2));
+      logger.info(`[addProposalLine] Sending to /proposals/${proposal_id}/line:`, JSON.stringify(lineData, null, 2));
       
-      const response = await this.client.post(`/proposals/${proposal_id}/lines`, lineData);
+      // Utiliser /line (singulier) pour une seule ligne, pas /lines (qui attend un tableau)
+      const response = await this.client.post(`/proposals/${proposal_id}/line`, lineData);
       
       // Log la réponse
       logger.info(`[addProposalLine] Response:`, JSON.stringify(response.data, null, 2));

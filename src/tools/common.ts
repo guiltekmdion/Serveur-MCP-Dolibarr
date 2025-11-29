@@ -97,8 +97,9 @@ export const helpGuideTool = {
   },
 };
 
-export async function handleHelpGuide(args: { question: string }) {
-  const q = (args.question || '').toLowerCase();
+export async function handleHelpGuide(args: unknown) {
+  const parsed = args as { question?: string };
+  const q = (parsed.question || '').toLowerCase();
   
   const guides: { keywords: string[], tool: string, description: string }[] = [
     // CLIENTS / TOP CLIENTS

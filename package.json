@@ -1,6 +1,6 @@
 {
   "name": "serveur-mcp-dolibarr",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "MCP Server pour intégrer Dolibarr ERP/CRM avec Claude AI et autres assistants compatibles MCP",
   "type": "module",
   "main": "dist/server.js",
