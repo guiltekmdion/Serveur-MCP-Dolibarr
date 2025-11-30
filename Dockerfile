@@ -22,6 +22,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Disable dotenv promotional messages that break STDIO/MCP protocol
+ENV DOTENV_CONFIG_QUIET=true
+
 # Copy built files and package files
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./

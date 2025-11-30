@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
 
-// Charger les variables d'environnement
-dotenv.config();
+// Charger les variables d'environnement (quiet pour éviter les messages sur stdout qui cassent STDIO/MCP)
+dotenv.config({ debug: false });
+
+// Supprimer le message promotionnel de dotenv v17+ qui pollue stdout
+// Ce message casse le protocole MCP en mode STDIO
 
 const ConfigSchema = z.object({
   DOLIBARR_BASE_URL: z.string().url('URL de base Dolibarr invalide'),
