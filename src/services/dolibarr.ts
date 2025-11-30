@@ -1628,25 +1628,45 @@ export class DolibarrClient {
   }
 
   async generatePdf(module: string, id: string): Promise<{ filename: string; content: string }> {
-    let endpoint = '';
+    // Dolibarr utilise PUT /documents/builddoc avec modulepart et original_file (la référence)
+    // D'abord, on récupère l'objet pour obtenir sa référence
+    let ref = '';
+    let modulepart = '';
+    
     switch (module) {
       case 'invoice':
-        endpoint = `invoices/${id}/builddoc`;
+        modulepart = 'invoice';
+        const invoice = await this.getInvoice(id);
+        ref = invoice.ref || '';
         break;
       case 'propal':
-        endpoint = `proposals/${id}/builddoc`;
+        modulepart = 'propal';
+        const proposal = await this.getProposal(id);
+        ref = proposal.ref || '';
         break;
       case 'order':
-        endpoint = `orders/${id}/builddoc`;
+        modulepart = 'order';
+        const order = await this.getOrder(id);
+        ref = order.ref || '';
         break;
       case 'contract':
-        endpoint = `contracts/${id}/builddoc`;
+        modulepart = 'contract';
+        const contract = await this.client.get(`contracts/${id}`);
+        ref = contract.data.ref || '';
         break;
       default:
         throw new Error(`Module non supporté: ${module}`);
     }
 
-    const response = await this.client.put(endpoint, {});
+    if (!ref) {
+      throw new Error(`Impossible de récupérer la référence pour ${module} #${id}`);
+    }
+
+    // Appeler PUT /documents/builddoc
+    const response = await this.client.put('documents/builddoc', {
+      modulepart: modulepart,
+      original_file: ref,
+    });
     return response.data;
   }
 
