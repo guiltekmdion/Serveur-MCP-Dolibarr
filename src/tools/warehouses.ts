@@ -3,6 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import { dolibarrClient } from '../services/dolibarr.js';
+import { z } from 'zod';
 import { ListWarehousesArgsSchema, GetWarehouseArgsSchema, CreateWarehouseArgsSchema } from '../types/index.js';
 
 /**
@@ -101,6 +102,79 @@ export async function handleCreateWarehouse(args: unknown) {
   };
 }
 
+// === NOUVEAUX OUTILS ENTREPÔTS ===
+
+export const updateWarehouseTool = {
+  name: 'dolibarr_update_warehouse',
+  description: 'Mettre à jour un entrepôt',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'entrepôt' },
+      label: { type: 'string', description: 'Nom' },
+      description: { type: 'string', description: 'Description' },
+      status: { type: 'string', description: 'Statut' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleUpdateWarehouse(args: unknown) {
+  const schema = z.object({
+    id: z.string(),
+    label: z.string().optional(),
+    description: z.string().optional(),
+    status: z.string().optional(),
+  });
+  const { id, ...data } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/warehouses/${id}`, data);
+  return { content: [{ type: 'text', text: `Entrepôt ${id} mis à jour` }] };
+}
+
+export const deleteWarehouseTool = {
+  name: 'dolibarr_delete_warehouse',
+  description: 'Supprimer un entrepôt',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'entrepôt' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteWarehouse(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/warehouses/${id}`);
+  return { content: [{ type: 'text', text: `Entrepôt ${id} supprimé` }] };
+}
+
+export const getWarehouseStockTool = {
+  name: 'dolibarr_get_warehouse_stock',
+  description: 'Lister le stock d\'un entrepôt (produits)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'entrepôt' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetWarehouseStock(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/warehouses/${id}/products`); 
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
 // Export des outils pour l'enregistrement dans server.ts
-export const warehouseTools = [listWarehousesTool, getWarehouseTool, createWarehouseTool];
+export const warehouseTools = [
+  listWarehousesTool, 
+  getWarehouseTool, 
+  createWarehouseTool,
+  updateWarehouseTool,
+  deleteWarehouseTool,
+  getWarehouseStockTool
+];
 

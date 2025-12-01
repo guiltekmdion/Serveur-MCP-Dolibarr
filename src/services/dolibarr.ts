@@ -231,7 +231,10 @@ export class DolibarrClient {
       retries: config.MAX_RETRIES,
       retryDelay: (retryCount: number) => retryCount * 500, // 500ms, 1000ms (plus rapide)
       retryCondition: (error: AxiosError) => {
-        return (axiosRetry as any).isNetworkOrIdempotentRequestError(error) || error.response?.status === 429;
+        const status = error.response?.status;
+        // Ne pas réessayer sur les erreurs client (4xx) ou 501 (Not Implemented)
+        if (status && (status < 500 || status === 501)) return false;
+        return (axiosRetry as any).isNetworkOrIdempotentRequestError(error) || status === 429;
       },
       onRetry: (retryCount: number, error: AxiosError, requestConfig: AxiosRequestConfig) => {
         logger.warn(`Retry #${retryCount} for ${requestConfig.url}: ${error.message}`);
@@ -384,9 +387,17 @@ export class DolibarrClient {
       const message = typeof rawMessage === 'string' ? rawMessage : JSON.stringify(rawMessage);
       
       // Log full error details for debugging
-      console.error(`[Dolibarr API] Full Error Data in ${context}:`, JSON.stringify(data, null, 2));
+      if (status !== 404 && status !== 409) {
+        console.error(`[Dolibarr API] Full Error Data in ${context}:`, JSON.stringify(data, null, 2));
+      }
       
-      logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
+      if (status === 409) {
+        logger.warn(`[Dolibarr API] Conflict in ${context}: ${status} - ${message}`);
+      } else if (status === 404) {
+        logger.info(`[Dolibarr API] Not Found in ${context}: ${status} - ${message}`);
+      } else {
+        logger.error(`[Dolibarr API] Error in ${context}: ${status} - ${message}`);
+      }
       
       // Détection intelligente de module non activé
       const moduleNotEnabledPatterns = [
@@ -685,7 +696,9 @@ export class DolibarrClient {
 
   async changeProposalStatus(id: string, status: 'validate' | 'close' | 'refuse' | 'sign'): Promise<void> {
     try {
-      await this.client.post(`/proposals/${id}/${status}`);
+      // notrigger doit être un integer (0 ou 1), pas un boolean
+      // Passer notrigger en query param pour éviter les erreurs de validation du body
+      await this.client.post(`/proposals/${id}/${status}`, {}, { params: { notrigger: 0 } });
     } catch (error) {
       this.handleError(error, `changeProposalStatus(${id}, ${status})`);
     }
@@ -699,6 +712,25 @@ export class DolibarrClient {
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
       this.handleError(error, `getOrder(${id})`);
+    }
+  }
+
+  async listOrders(params?: { thirdparty_id?: string; status?: string; limit?: number }): Promise<Order[]> {
+    try {
+      const queryParams: any = {
+        sortfield: 't.rowid',
+        sortorder: 'DESC',
+        limit: params?.limit || 100
+      };
+      
+      if (params?.thirdparty_id) queryParams.socid = params.thirdparty_id;
+      if (params?.status) queryParams.status = params.status;
+
+      const response = await this.client.get('/orders', { params: queryParams });
+      return z.array(OrderSchema).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'listOrders');
     }
   }
 
@@ -833,6 +865,13 @@ export class DolibarrClient {
     try {
       const { id, ...updateData } = UpdateProductArgsSchema.parse(data);
       const response = await this.client.put(`/products/${id}`, updateData);
+      
+      // Si Dolibarr retourne l'objet complet (cas fréquent sur PUT), on retourne l'ID
+      if (typeof response.data === 'object' && response.data !== null) {
+        if ('id' in response.data) return String(response.data.id);
+        return id; // Fallback
+      }
+
       return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
@@ -843,6 +882,16 @@ export class DolibarrClient {
   async deleteProduct(id: string): Promise<string> {
     try {
       const response = await this.client.delete(`/products/${id}`);
+      
+      // Si Dolibarr retourne l'objet complet ou null, on gère
+      if (typeof response.data === 'object' && response.data !== null) {
+        if ('id' in response.data) return String(response.data.id);
+        return id; // Fallback
+      }
+      
+      // Si vide ou null (succès sans contenu)
+      if (!response.data) return id;
+
       return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       this.handleError(error, `deleteProduct(${id})`);
@@ -916,6 +965,33 @@ export class DolibarrClient {
   }
 
   // === TÂCHES ===
+  async listTasks(params?: { sortfield?: string; sortorder?: string; limit?: number; status?: string; user_id?: string }): Promise<Task[]> {
+    try {
+      const queryParams: any = {
+        sortfield: params?.sortfield || 't.datee',
+        sortorder: params?.sortorder || 'ASC',
+        limit: params?.limit || 100
+      };
+      
+      const filters: string[] = [];
+      if (params?.status) filters.push(`(t.progress:<:${params.status})`); // Exemple pour tâches non finies
+      if (params?.user_id) filters.push(`(t.fk_user_assign:=:${params.user_id})`);
+      
+      if (filters.length > 0) {
+        queryParams.sqlfilters = filters.join(' AND ');
+      }
+
+      const response = await this.client.get('/tasks', { params: queryParams });
+      return z.array(TaskSchema).parse(response.data);
+    } catch (error) {
+      // Si 404, retourner tableau vide
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return [];
+      }
+      this.handleError(error, 'listTasks');
+    }
+  }
+
   async getTask(id: string): Promise<Task> {
     try {
       const response = await this.client.get(`/tasks/${id}`);
@@ -1217,7 +1293,11 @@ export class DolibarrClient {
   async createExpenseReport(data: z.infer<typeof CreateExpenseReportArgsSchema>): Promise<string> {
     try {
       const validated = CreateExpenseReportArgsSchema.parse(data);
-      const response = await this.client.post('/expensereports', validated);
+      // Mapper user_id vers fk_user_author pour l'API
+      const { user_id, ...rest } = validated;
+      const apiData = { ...rest, fk_user_author: user_id };
+      
+      const response = await this.client.post('/expensereports', apiData);
       return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
     } catch (error) {
       if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
@@ -1312,8 +1392,14 @@ export class DolibarrClient {
   }
 
   async createContract(data: z.infer<typeof CreateContractArgsSchema>): Promise<string> {
-    const response = await this.client.post('contracts', data);
-    return response.data;
+    try {
+      const validated = CreateContractArgsSchema.parse(data);
+      const response = await this.client.post('contracts', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createContract');
+    }
   }
 
   // === INTERVENTIONS ===
@@ -1335,8 +1421,14 @@ export class DolibarrClient {
   }
 
   async createIntervention(data: z.infer<typeof CreateInterventionArgsSchema>): Promise<string> {
-    const response = await this.client.post('interventions', data);
-    return response.data;
+    try {
+      const validated = CreateInterventionArgsSchema.parse(data);
+      const response = await this.client.post('interventions', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createIntervention');
+    }
   }
 
   // === EXPÉDITIONS ===
@@ -1399,8 +1491,14 @@ export class DolibarrClient {
   }
 
   async createTicket(data: z.infer<typeof CreateTicketArgsSchema>): Promise<string> {
-    const response = await this.client.post('tickets', data);
-    return response.data;
+    try {
+      const validated = CreateTicketArgsSchema.parse(data);
+      const response = await this.client.post('tickets', validated);
+      return z.union([z.string(), z.number()]).transform(v => String(v)).parse(response.data);
+    } catch (error) {
+      if (error instanceof z.ZodError) throw new Error(`Validation: ${error.message}`);
+      this.handleError(error, 'createTicket');
+    }
   }
 
   // === TIME ENTRIES (Reporting temps) ===
@@ -1825,6 +1923,7 @@ export class DolibarrClient {
   async createResourceBooking(resourceId: string, userId: string, dateStart: number, dateEnd: number, note?: string): Promise<string> {
     // Note: Nécessite le module "Resource" activé dans Dolibarr
     const response = await this.client.post('resources/bookings', {
+
       fk_resource: resourceId,
       fk_user: userId,
       date_start: dateStart,

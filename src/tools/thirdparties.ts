@@ -6,6 +6,7 @@ import {
   CreateThirdPartyArgsSchema,
   UpdateThirdPartyArgsSchema
 } from '../types/index.js';
+import { z } from 'zod';
 
 /**
  * Outil MCP : Récupérer les détails d'un tiers
@@ -163,4 +164,247 @@ export async function handleUpdateThirdParty(args: unknown) {
       },
     ],
   };
+}
+
+/**
+ * Outil MCP : Supprimer un tiers
+ */
+export const deleteThirdPartyTool = {
+  name: 'dolibarr_delete_thirdparty',
+  description: 'Supprimer un tiers (client/fournisseur)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du tiers à supprimer' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteThirdParty(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore - Accès direct à axios pour delete générique si pas de méthode dédiée
+  await dolibarrClient['client'].delete(`/thirdparties/${id}`);
+  return { content: [{ type: 'text', text: `Tiers ${id} supprimé avec succès` }] };
+}
+
+/**
+ * Outil MCP : Récupérer les catégories d'un tiers
+ */
+export const getThirdPartyCategoriesTool = {
+  name: 'dolibarr_get_thirdparty_categories',
+  description: 'Lister les catégories (tags) d\'un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du tiers' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetThirdPartyCategories(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/thirdparties/${id}/categories`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+/**
+ * Outil MCP : Ajouter une catégorie à un tiers
+ */
+export const addThirdPartyCategoryTool = {
+  name: 'dolibarr_add_thirdparty_category',
+  description: 'Ajouter un tag/catégorie à un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      thirdparty_id: { type: 'string', description: 'ID du tiers' },
+      category_id: { type: 'string', description: 'ID de la catégorie' },
+    },
+    required: ['thirdparty_id', 'category_id'],
+  },
+};
+
+export async function handleAddThirdPartyCategory(args: unknown) {
+  const schema = z.object({ thirdparty_id: z.string(), category_id: z.string() });
+  const { thirdparty_id, category_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/categories/${category_id}/objects/customer/${thirdparty_id}`);
+  return { content: [{ type: 'text', text: `Catégorie ${category_id} ajoutée au tiers ${thirdparty_id}` }] };
+}
+
+/**
+ * Outil MCP : Retirer une catégorie d'un tiers
+ */
+export const removeThirdPartyCategoryTool = {
+  name: 'dolibarr_remove_thirdparty_category',
+  description: 'Retirer un tag/catégorie d\'un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      thirdparty_id: { type: 'string', description: 'ID du tiers' },
+      category_id: { type: 'string', description: 'ID de la catégorie' },
+    },
+    required: ['thirdparty_id', 'category_id'],
+  },
+};
+
+export async function handleRemoveThirdPartyCategory(args: unknown) {
+  const schema = z.object({ thirdparty_id: z.string(), category_id: z.string() });
+  const { thirdparty_id, category_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/categories/${category_id}/objects/customer/${thirdparty_id}`);
+  return { content: [{ type: 'text', text: `Catégorie ${category_id} retirée du tiers ${thirdparty_id}` }] };
+}
+
+/**
+ * Outil MCP : Récupérer les comptes bancaires d'un tiers
+ */
+export const getThirdPartyBankAccountsTool = {
+  name: 'dolibarr_get_thirdparty_bank_accounts',
+  description: 'Lister les comptes bancaires (RIB) associés à un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du tiers' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetThirdPartyBankAccounts(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/thirdparties/${id}/bankaccounts`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+/**
+ * Outil MCP : Créer un compte bancaire pour un tiers
+ */
+export const createThirdPartyBankAccountTool = {
+  name: 'dolibarr_create_thirdparty_bank_account',
+  description: 'Ajouter un RIB/Compte bancaire à un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      thirdparty_id: { type: 'string', description: 'ID du tiers' },
+      label: { type: 'string', description: 'Libellé du compte' },
+      bank_name: { type: 'string', description: 'Nom de la banque' },
+      iban: { type: 'string', description: 'IBAN' },
+      bic: { type: 'string', description: 'BIC' },
+    },
+    required: ['thirdparty_id', 'label', 'iban'],
+  },
+};
+
+export async function handleCreateThirdPartyBankAccount(args: unknown) {
+  const schema = z.object({ 
+    thirdparty_id: z.string(), 
+    label: z.string(), 
+    bank_name: z.string().optional(), 
+    iban: z.string(), 
+    bic: z.string().optional() 
+  });
+  const data = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].post(`/thirdparties/${data.thirdparty_id}/bankaccounts`, data);
+  return { content: [{ type: 'text', text: `Compte bancaire créé ID: ${response.data}` }] };
+}
+
+/**
+ * Outil MCP : Factures impayées d'un tiers
+ */
+export const getThirdPartyOutstandingInvoicesTool = {
+  name: 'dolibarr_get_thirdparty_outstanding_invoices',
+  description: 'Lister les factures impayées pour un tiers spécifique',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du tiers' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetThirdPartyOutstandingInvoices(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  const invoices = await dolibarrClient.listInvoices({ thirdparty_id: id, status: 'unpaid' });
+  return { content: [{ type: 'text', text: JSON.stringify(invoices, null, 2) }] };
+}
+
+/**
+ * Outil MCP : Commerciaux d'un tiers
+ */
+export const getThirdPartySalesRepresentativesTool = {
+  name: 'dolibarr_get_thirdparty_sales_representatives',
+  description: 'Lister les commerciaux assignés à un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du tiers' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetThirdPartySalesRepresentatives(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/thirdparties/${id}/representatives`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+/**
+ * Outil MCP : Ajouter un commercial à un tiers
+ */
+export const addThirdPartySalesRepresentativeTool = {
+  name: 'dolibarr_add_thirdparty_sales_representative',
+  description: 'Assigner un commercial à un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      thirdparty_id: { type: 'string', description: 'ID du tiers' },
+      user_id: { type: 'string', description: 'ID de l\'utilisateur (commercial)' },
+    },
+    required: ['thirdparty_id', 'user_id'],
+  },
+};
+
+export async function handleAddThirdPartySalesRepresentative(args: unknown) {
+  const schema = z.object({ thirdparty_id: z.string(), user_id: z.string() });
+  const { thirdparty_id, user_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/thirdparties/${thirdparty_id}/representatives/${user_id}`);
+  return { content: [{ type: 'text', text: `Commercial ${user_id} assigné au tiers ${thirdparty_id}` }] };
+}
+
+/**
+ * Outil MCP : Retirer un commercial d'un tiers
+ */
+export const removeThirdPartySalesRepresentativeTool = {
+  name: 'dolibarr_remove_thirdparty_sales_representative',
+  description: 'Désassigner un commercial d\'un tiers',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      thirdparty_id: { type: 'string', description: 'ID du tiers' },
+      user_id: { type: 'string', description: 'ID de l\'utilisateur (commercial)' },
+    },
+    required: ['thirdparty_id', 'user_id'],
+  },
+};
+
+export async function handleRemoveThirdPartySalesRepresentative(args: unknown) {
+  const schema = z.object({ thirdparty_id: z.string(), user_id: z.string() });
+  const { thirdparty_id, user_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/thirdparties/${thirdparty_id}/representatives/${user_id}`);
+  return { content: [{ type: 'text', text: `Commercial ${user_id} retiré du tiers ${thirdparty_id}` }] };
 }

@@ -3,6 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import { dolibarrClient } from '../services/dolibarr.js';
+import { z } from 'zod';
 import { ListTicketsArgsSchema, GetTicketArgsSchema, CreateTicketArgsSchema } from '../types/index.js';
 
 /**
@@ -122,6 +123,158 @@ export async function handleCreateTicket(args: unknown) {
   };
 }
 
+// === NOUVEAUX OUTILS TICKETS ===
+
+export const updateTicketTool = {
+  name: 'dolibarr_update_ticket',
+  description: 'Mettre à jour un ticket',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du ticket' },
+      subject: { type: 'string', description: 'Sujet' },
+      message: { type: 'string', description: 'Message' },
+      status: { type: 'string', description: 'Statut' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleUpdateTicket(args: unknown) {
+  const schema = z.object({
+    id: z.string(),
+    subject: z.string().optional(),
+    message: z.string().optional(),
+    status: z.string().optional(),
+  });
+  const { id, ...data } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/tickets/${id}`, data);
+  return { content: [{ type: 'text', text: `Ticket ${id} mis à jour` }] };
+}
+
+export const deleteTicketTool = {
+  name: 'dolibarr_delete_ticket',
+  description: 'Supprimer un ticket',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du ticket' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteTicket(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/tickets/${id}`);
+  return { content: [{ type: 'text', text: `Ticket ${id} supprimé` }] };
+}
+
+export const addTicketMessageTool = {
+  name: 'dolibarr_add_ticket_message',
+  description: 'Ajouter un message à un ticket',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du ticket' },
+      message: { type: 'string', description: 'Contenu du message' },
+    },
+    required: ['id', 'message'],
+  },
+};
+
+export async function handleAddTicketMessage(args: unknown) {
+  const schema = z.object({ id: z.string(), message: z.string() });
+  const { id, message } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/tickets/${id}/messages`, { message });
+  return { content: [{ type: 'text', text: `Message ajouté au ticket ${id}` }] };
+}
+
+export const getTicketMessagesTool = {
+  name: 'dolibarr_get_ticket_messages',
+  description: 'Lister les messages d\'un ticket',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du ticket' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetTicketMessages(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/tickets/${id}/messages`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const assignTicketTool = {
+  name: 'dolibarr_assign_ticket',
+  description: 'Assigner un ticket à un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID du ticket' },
+      user_id: { type: 'string', description: 'ID de l\'utilisateur' },
+    },
+    required: ['id', 'user_id'],
+  },
+};
+
+export async function handleAssignTicket(args: unknown) {
+  const schema = z.object({ id: z.string(), user_id: z.string() });
+  const { id, user_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/tickets/${id}`, { fk_user_assign: user_id });
+  return { content: [{ type: 'text', text: `Ticket ${id} assigné à l'utilisateur ${user_id}` }] };
+}
+
+export const closeTicketTool = {
+  name: 'dolibarr_close_ticket',
+  description: 'Clore un ticket',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du ticket' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCloseTicket(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/tickets/${id}/close`);
+  return { content: [{ type: 'text', text: `Ticket ${id} clos` }] };
+}
+
+export const getTicketCategoriesTool = {
+  name: 'dolibarr_get_ticket_categories',
+  description: 'Lister les catégories de tickets',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {},
+  },
+};
+
+export async function handleGetTicketCategories(args: unknown) {
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get('/setup/dictionary/ticket_categories');
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
 // Export des outils pour l'enregistrement dans server.ts
-export const ticketTools = [listTicketsTool, getTicketTool, createTicketTool];
+export const ticketTools = [
+  listTicketsTool, 
+  getTicketTool, 
+  createTicketTool,
+  updateTicketTool,
+  deleteTicketTool,
+  addTicketMessageTool,
+  getTicketMessagesTool,
+  assignTicketTool,
+  closeTicketTool,
+  getTicketCategoriesTool
+];
 

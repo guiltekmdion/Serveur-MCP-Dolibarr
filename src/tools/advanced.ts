@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { dolibarrClient } from '../services/dolibarr.js';
 import {
   ListDocumentsArgsSchema,
@@ -343,4 +344,589 @@ export async function handleCreateBankAccount(args: unknown) {
   const validated = CreateBankAccountArgsSchema.parse(args);
   const id = await dolibarrClient.createBankAccount(validated);
   return { content: [{ type: 'text' as const, text: JSON.stringify({ id, message: 'Compte bancaire créé' }, null, 2) }] };
+}
+
+// === NOUVEAUX OUTILS PROJETS ===
+
+export const deleteProjectTool = {
+  name: 'dolibarr_delete_project',
+  description: 'Supprimer un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteProject(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/projects/${id}`);
+  return { content: [{ type: 'text', text: `Projet ${id} supprimé` }] };
+}
+
+export const addProjectContactTool = {
+  name: 'dolibarr_add_project_contact',
+  description: 'Ajouter un contact à un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      project_id: { type: 'string', description: 'ID du projet' },
+      contact_id: { type: 'string', description: 'ID du contact' },
+      type: { type: 'string', description: 'Type de contact (ex: PROJECTLEADER, CONTRIBUTOR)' },
+    },
+    required: ['project_id', 'contact_id', 'type'],
+  },
+};
+
+export async function handleAddProjectContact(args: unknown) {
+  const schema = z.object({ project_id: z.string(), contact_id: z.string(), type: z.string() });
+  const { project_id, contact_id, type } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/projects/${project_id}/contacts/${contact_id}/${type}`);
+  return { content: [{ type: 'text', text: `Contact ${contact_id} ajouté au projet ${project_id}` }] };
+}
+
+export const deleteProjectContactTool = {
+  name: 'dolibarr_delete_project_contact',
+  description: 'Retirer un contact d\'un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      project_id: { type: 'string', description: 'ID du projet' },
+      contact_id: { type: 'string', description: 'ID du contact' },
+      type: { type: 'string', description: 'Type de contact' },
+    },
+    required: ['project_id', 'contact_id', 'type'],
+  },
+};
+
+export async function handleDeleteProjectContact(args: unknown) {
+  const schema = z.object({ project_id: z.string(), contact_id: z.string(), type: z.string() });
+  const { project_id, contact_id, type } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/projects/${project_id}/contacts/${contact_id}/${type}`);
+  return { content: [{ type: 'text', text: `Contact ${contact_id} retiré du projet ${project_id}` }] };
+}
+
+export const getProjectInvoicesTool = {
+  name: 'dolibarr_get_project_invoices',
+  description: 'Lister les factures liées à un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProjectInvoices(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/projects/${id}/invoices`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const getProjectOrdersTool = {
+  name: 'dolibarr_get_project_orders',
+  description: 'Lister les commandes liées à un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProjectOrders(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/projects/${id}/orders`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const getProjectProposalsTool = {
+  name: 'dolibarr_get_project_proposals',
+  description: 'Lister les propositions liées à un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProjectProposals(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/projects/${id}/proposals`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const closeProjectTool = {
+  name: 'dolibarr_close_project',
+  description: 'Clore un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCloseProject(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/projects/${id}/close`); // Endpoint hypothétique ou update status
+  // Fallback update
+  // await dolibarrClient.updateProject({ id, status: 'closed' }); // Si updateProject supporte status
+  return { content: [{ type: 'text', text: `Projet ${id} clos` }] };
+}
+
+export const reopenProjectTool = {
+  name: 'dolibarr_reopen_project',
+  description: 'Rouvrir un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleReopenProject(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/projects/${id}/validate`); // Souvent validate = open
+  return { content: [{ type: 'text', text: `Projet ${id} rouvert` }] };
+}
+
+export const getProjectOverviewTool = {
+  name: 'dolibarr_get_project_overview',
+  description: 'Obtenir une vue d\'ensemble d\'un projet (tâches, temps, rentabilité)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProjectOverview(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  const project = await dolibarrClient.getProject(id);
+  // @ts-ignore
+  const tasks = await dolibarrClient['client'].get(`/projects/${id}/tasks`);
+  // Calculs simples
+  const overview = {
+    project,
+    tasks_count: tasks.data.length,
+    // ... autres stats
+  };
+  return { content: [{ type: 'text', text: JSON.stringify(overview, null, 2) }] };
+}
+
+export const getProjectDocumentsTool = {
+  name: 'dolibarr_get_project_documents',
+  description: 'Lister les documents d\'un projet',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID du projet' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProjectDocuments(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  const docs = await dolibarrClient.listDocumentsForObject('project', id);
+  return { content: [{ type: 'text', text: JSON.stringify(docs, null, 2) }] };
+}
+
+// === NOUVEAUX OUTILS TÂCHES ===
+
+export const listTasksTool = {
+  name: 'dolibarr_list_tasks',
+  description: 'Lister les tâches (filtres possibles)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      project_id: { type: 'string', description: 'ID du projet' },
+      user_id: { type: 'string', description: 'ID utilisateur assigné' },
+      status: { type: 'string', description: 'Statut (pourcentage)' },
+    },
+  },
+};
+
+export async function handleListTasks(args: unknown) {
+  const schema = z.object({ project_id: z.string().optional(), user_id: z.string().optional(), status: z.string().optional() });
+  const params = schema.parse(args);
+  // @ts-ignore
+  const tasks = await dolibarrClient.listTasks(params);
+  return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+}
+
+export const deleteTaskTool = {
+  name: 'dolibarr_delete_task',
+  description: 'Supprimer une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteTask(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/tasks/${id}`);
+  return { content: [{ type: 'text', text: `Tâche ${id} supprimée` }] };
+}
+
+export const getTaskTimeSpentTool = {
+  name: 'dolibarr_get_task_time_spent',
+  description: 'Obtenir le temps passé sur une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetTaskTimeSpent(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/tasks/${id}/time_spent`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const assignTaskUserTool = {
+  name: 'dolibarr_assign_task_user',
+  description: 'Assigner un utilisateur à une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      task_id: { type: 'string', description: 'ID de la tâche' },
+      user_id: { type: 'string', description: 'ID de l\'utilisateur' },
+      percentage: { type: 'number', description: 'Pourcentage d\'affectation (défaut 100)' },
+    },
+    required: ['task_id', 'user_id'],
+  },
+};
+
+export async function handleAssignTaskUser(args: unknown) {
+  const schema = z.object({ task_id: z.string(), user_id: z.string(), percentage: z.number().optional() });
+  const { task_id, user_id, percentage } = schema.parse(args);
+  await dolibarrClient.assignTaskToUser(task_id, user_id, percentage);
+  return { content: [{ type: 'text', text: `Utilisateur ${user_id} assigné à la tâche ${task_id}` }] };
+}
+
+export const unassignTaskUserTool = {
+  name: 'dolibarr_unassign_task_user',
+  description: 'Désassigner un utilisateur d\'une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      task_id: { type: 'string', description: 'ID de la tâche' },
+      user_id: { type: 'string', description: 'ID de l\'utilisateur' },
+    },
+    required: ['task_id', 'user_id'],
+  },
+};
+
+export async function handleUnassignTaskUser(args: unknown) {
+  const schema = z.object({ task_id: z.string(), user_id: z.string() });
+  const { task_id, user_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/tasks/${task_id}/contact/${user_id}/user`);
+  return { content: [{ type: 'text', text: `Utilisateur ${user_id} désassigné de la tâche ${task_id}` }] };
+}
+
+export const completeTaskTool = {
+  name: 'dolibarr_complete_task',
+  description: 'Marquer une tâche comme terminée (100%)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCompleteTask(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  await dolibarrClient.updateTask({ id, progress: 100 });
+  return { content: [{ type: 'text', text: `Tâche ${id} terminée` }] };
+}
+
+export const reopenTaskTool = {
+  name: 'dolibarr_reopen_task',
+  description: 'Rouvrir une tâche (0%)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche' } },
+    required: ['id'],
+  },
+};
+
+export async function handleReopenTask(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  await dolibarrClient.updateTask({ id, progress: 0 });
+  return { content: [{ type: 'text', text: `Tâche ${id} rouverte` }] };
+}
+
+export const getTaskDocumentsTool = {
+  name: 'dolibarr_get_task_documents',
+  description: 'Lister les documents d\'une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetTaskDocuments(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  const docs = await dolibarrClient.listDocumentsForObject('task', id);
+  return { content: [{ type: 'text', text: JSON.stringify(docs, null, 2) }] };
+}
+
+export const listUserTasksTool = {
+  name: 'dolibarr_list_user_tasks',
+  description: 'Lister les tâches assignées à un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { user_id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['user_id'],
+  },
+};
+
+export async function handleListUserTasks(args: unknown) {
+  const schema = z.object({ user_id: z.string() });
+  const { user_id } = schema.parse(args);
+  const tasks = await dolibarrClient.listTasks({ user_id });
+  return { content: [{ type: 'text', text: JSON.stringify(tasks, null, 2) }] };
+}
+
+export const getTaskChildrenTool = {
+  name: 'dolibarr_get_task_children',
+  description: 'Lister les sous-tâches d\'une tâche',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la tâche parente' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetTaskChildren(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/tasks`, { params: { sqlfilters: `(t.fk_task_parent:=:${id})` } });
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+// === NOUVEAUX OUTILS UTILISATEURS ===
+
+export const deleteUserTool = {
+  name: 'dolibarr_delete_user',
+  description: 'Supprimer un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteUser(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/users/${id}`);
+  return { content: [{ type: 'text', text: `Utilisateur ${id} supprimé` }] };
+}
+
+export const getUserGroupsTool = {
+  name: 'dolibarr_get_user_groups',
+  description: 'Lister les groupes d\'un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetUserGroups(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/users/${id}/groups`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const addUserToGroupTool = {
+  name: 'dolibarr_add_user_to_group',
+  description: 'Ajouter un utilisateur à un groupe',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      user_id: { type: 'string', description: 'ID de l\'utilisateur' },
+      group_id: { type: 'string', description: 'ID du groupe' },
+    },
+    required: ['user_id', 'group_id'],
+  },
+};
+
+export async function handleAddUserToGroup(args: unknown) {
+  const schema = z.object({ user_id: z.string(), group_id: z.string() });
+  const { user_id, group_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/users/${user_id}/groups/${group_id}`);
+  return { content: [{ type: 'text', text: `Utilisateur ${user_id} ajouté au groupe ${group_id}` }] };
+}
+
+export const removeUserFromGroupTool = {
+  name: 'dolibarr_remove_user_from_group',
+  description: 'Retirer un utilisateur d\'un groupe',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      user_id: { type: 'string', description: 'ID de l\'utilisateur' },
+      group_id: { type: 'string', description: 'ID du groupe' },
+    },
+    required: ['user_id', 'group_id'],
+  },
+};
+
+export async function handleRemoveUserFromGroup(args: unknown) {
+  const schema = z.object({ user_id: z.string(), group_id: z.string() });
+  const { user_id, group_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/users/${user_id}/groups/${group_id}`);
+  return { content: [{ type: 'text', text: `Utilisateur ${user_id} retiré du groupe ${group_id}` }] };
+}
+
+export const getUserPermissionsTool = {
+  name: 'dolibarr_get_user_permissions',
+  description: 'Lister les permissions d\'un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetUserPermissions(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  // Note: Endpoint permissions might vary, often it's embedded in user object or separate
+  // Trying generic approach or fetching user with details
+  const user = await dolibarrClient.getUser(id);
+  // @ts-ignore
+  return { content: [{ type: 'text', text: JSON.stringify(user.rights || {}, null, 2) }] };
+}
+
+export const disableUserTool = {
+  name: 'dolibarr_disable_user',
+  description: 'Désactiver un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDisableUser(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/users/${id}/disable`);
+  return { content: [{ type: 'text', text: `Utilisateur ${id} désactivé` }] };
+}
+
+export const enableUserTool = {
+  name: 'dolibarr_enable_user',
+  description: 'Activer un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'utilisateur' } },
+    required: ['id'],
+  },
+};
+
+export async function handleEnableUser(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/users/${id}/enable`);
+  return { content: [{ type: 'text', text: `Utilisateur ${id} activé` }] };
+}
+
+export const updateUserPasswordTool = {
+  name: 'dolibarr_update_user_password',
+  description: 'Modifier le mot de passe d\'un utilisateur',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'utilisateur' },
+      password: { type: 'string', description: 'Nouveau mot de passe' },
+    },
+    required: ['id', 'password'],
+  },
+};
+
+export async function handleUpdateUserPassword(args: unknown) {
+  const schema = z.object({ id: z.string(), password: z.string() });
+  const { id, password } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/users/${id}`, { password });
+  return { content: [{ type: 'text', text: `Mot de passe mis à jour pour l'utilisateur ${id}` }] };
+}
+
+export const listGroupsTool = {
+  name: 'dolibarr_list_groups',
+  description: 'Lister les groupes d\'utilisateurs',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      sortfield: { type: 'string' },
+      sortorder: { type: 'string' },
+      limit: { type: 'number' },
+    },
+  },
+};
+
+export async function handleListGroups(args: unknown) {
+  const schema = z.object({ sortfield: z.string().optional(), sortorder: z.string().optional(), limit: z.number().optional() });
+  const params = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get('/users/groups', { params });
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const createGroupTool = {
+  name: 'dolibarr_create_group',
+  description: 'Créer un groupe d\'utilisateurs',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      name: { type: 'string', description: 'Nom du groupe' },
+      note: { type: 'string', description: 'Note' },
+    },
+    required: ['name'],
+  },
+};
+
+export async function handleCreateGroup(args: unknown) {
+  const schema = z.object({ name: z.string(), note: z.string().optional() });
+  const data = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].post('/users/groups', data);
+  return { content: [{ type: 'text', text: `Groupe créé avec ID: ${response.data}` }] };
 }

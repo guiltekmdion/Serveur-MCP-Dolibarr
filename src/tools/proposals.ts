@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { dolibarrClient } from '../services/dolibarr.js';
 import {
   CreateProposalArgsSchema,
@@ -197,4 +198,201 @@ export async function handleChangeProposalStatus(args: unknown) {
       text: JSON.stringify({ message: `Statut du devis changé en ${validated.status}` }, null, 2),
     }],
   };
+}
+
+// === NOUVEAUX OUTILS PROPOSITIONS ===
+
+export const closeProposalTool = {
+  name: 'dolibarr_close_proposal',
+  description: 'Clore une proposition (Acceptée/Refusée) avec une note',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de la proposition' },
+      status: { type: 'string', description: 'Statut: signed (signée) ou refused (refusée)', enum: ['signed', 'refused'] },
+      note: { type: 'string', description: 'Note de fermeture (optionnel)' },
+    },
+    required: ['id', 'status'],
+  },
+};
+
+export async function handleCloseProposal(args: unknown) {
+  const schema = z.object({ id: z.string(), status: z.enum(['signed', 'refused']), note: z.string().optional() });
+  const { id, status, note } = schema.parse(args);
+  await dolibarrClient.closeProposal(id, status, note);
+  return { content: [{ type: 'text', text: `Proposition ${id} fermée avec statut ${status}` }] };
+}
+
+export const reopenProposalTool = {
+  name: 'dolibarr_reopen_proposal',
+  description: 'Rouvrir une proposition (remettre en brouillon)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la proposition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleReopenProposal(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/proposals/${id}/reopen`);
+  return { content: [{ type: 'text', text: `Proposition ${id} rouverte (brouillon)` }] };
+}
+
+export const cloneProposalTool = {
+  name: 'dolibarr_clone_proposal',
+  description: 'Cloner une proposition existante',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de la proposition source' },
+      socid: { type: 'string', description: 'ID du tiers cible (optionnel, sinon même tiers)' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleCloneProposal(args: unknown) {
+  const schema = z.object({ id: z.string(), socid: z.string().optional() });
+  const { id, socid } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].post(`/proposals/${id}/clone`, { socid });
+  return { content: [{ type: 'text', text: `Proposition clonée ID: ${response.data}` }] };
+}
+
+export const createOrderFromProposalTool = {
+  name: 'dolibarr_create_order_from_proposal',
+  description: 'Créer une commande à partir d\'une proposition signée',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la proposition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCreateOrderFromProposal(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].post(`/orders/createfromproposal/${id}`);
+  return { content: [{ type: 'text', text: `Commande créée ID: ${response.data}` }] };
+}
+
+export const getProposalContactsTool = {
+  name: 'dolibarr_get_proposal_contacts',
+  description: 'Lister les contacts associés à une proposition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la proposition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProposalContacts(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  const response = await dolibarrClient['client'].get(`/proposals/${id}/contacts`);
+  return { content: [{ type: 'text', text: JSON.stringify(response.data, null, 2) }] };
+}
+
+export const addProposalContactTool = {
+  name: 'dolibarr_add_proposal_contact',
+  description: 'Ajouter un contact à une proposition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      proposal_id: { type: 'string', description: 'ID de la proposition' },
+      contact_id: { type: 'string', description: 'ID du contact' },
+      type: { type: 'string', description: 'Type de contact (ex: BILLING, SHIPPING, SERVICE)' },
+    },
+    required: ['proposal_id', 'contact_id', 'type'],
+  },
+};
+
+export async function handleAddProposalContact(args: unknown) {
+  const schema = z.object({ proposal_id: z.string(), contact_id: z.string(), type: z.string() });
+  const { proposal_id, contact_id, type } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/proposals/${proposal_id}/contacts/${contact_id}/${type}`);
+  return { content: [{ type: 'text', text: `Contact ${contact_id} ajouté à la proposition ${proposal_id}` }] };
+}
+
+export const deleteProposalContactTool = {
+  name: 'dolibarr_delete_proposal_contact',
+  description: 'Retirer un contact d\'une proposition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      proposal_id: { type: 'string', description: 'ID de la proposition' },
+      contact_id: { type: 'string', description: 'ID du contact' },
+      type: { type: 'string', description: 'Type de contact' },
+    },
+    required: ['proposal_id', 'contact_id', 'type'],
+  },
+};
+
+export async function handleDeleteProposalContact(args: unknown) {
+  const schema = z.object({ proposal_id: z.string(), contact_id: z.string(), type: z.string() });
+  const { proposal_id, contact_id, type } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/proposals/${proposal_id}/contacts/${contact_id}/${type}`);
+  return { content: [{ type: 'text', text: `Contact ${contact_id} retiré de la proposition ${proposal_id}` }] };
+}
+
+export const deleteProposalTool = {
+  name: 'dolibarr_delete_proposal',
+  description: 'Supprimer une proposition (si brouillon)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la proposition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteProposal(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/proposals/${id}`);
+  return { content: [{ type: 'text', text: `Proposition ${id} supprimée` }] };
+}
+
+export const getProposalDocumentsTool = {
+  name: 'dolibarr_get_proposal_documents',
+  description: 'Lister les documents d\'une proposition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de la proposition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleGetProposalDocuments(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  const docs = await dolibarrClient.listDocumentsForObject('propal', id);
+  return { content: [{ type: 'text', text: JSON.stringify(docs, null, 2) }] };
+}
+
+export const sendProposalEmailTool = {
+  name: 'dolibarr_send_proposal_email',
+  description: 'Envoyer une proposition par email',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de la proposition' },
+      email: { type: 'string', description: 'Email destinataire' },
+    },
+    required: ['id', 'email'],
+  },
+};
+
+export async function handleSendProposalEmail(args: unknown) {
+  const schema = z.object({ id: z.string(), email: z.string() });
+  const { id, email } = schema.parse(args);
+  await dolibarrClient.sendDocumentByEmail('propal', id, email);
+  return { content: [{ type: 'text', text: `Proposition ${id} envoyée à ${email}` }] };
 }

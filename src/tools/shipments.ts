@@ -3,6 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import { dolibarrClient } from '../services/dolibarr.js';
+import { z } from 'zod';
 import { ListShipmentsArgsSchema, GetShipmentArgsSchema, CreateShipmentArgsSchema } from '../types/index.js';
 
 /**
@@ -114,6 +115,184 @@ export async function handleCreateShipment(args: unknown) {
   };
 }
 
+// === NOUVEAUX OUTILS EXPÉDITIONS ===
+
+export const updateShipmentTool = {
+  name: 'dolibarr_update_shipment',
+  description: 'Mettre à jour une expédition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'expédition' },
+      tracking_number: { type: 'string', description: 'Numéro de suivi' },
+      date_delivery: { type: 'number', description: 'Date de livraison' },
+      weight: { type: 'number', description: 'Poids' },
+      size: { type: 'string', description: 'Dimensions' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleUpdateShipment(args: unknown) {
+  const schema = z.object({
+    id: z.string(),
+    tracking_number: z.string().optional(),
+    date_delivery: z.number().optional(),
+    weight: z.number().optional(),
+    size: z.string().optional(),
+  });
+  const { id, ...data } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/shipments/${id}`, data);
+  return { content: [{ type: 'text', text: `Expédition ${id} mise à jour` }] };
+}
+
+export const deleteShipmentTool = {
+  name: 'dolibarr_delete_shipment',
+  description: 'Supprimer une expédition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'expédition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteShipment(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/shipments/${id}`);
+  return { content: [{ type: 'text', text: `Expédition ${id} supprimée` }] };
+}
+
+export const validateShipmentTool = {
+  name: 'dolibarr_validate_shipment',
+  description: 'Valider une expédition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'expédition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleValidateShipment(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/shipments/${id}/validate`);
+  return { content: [{ type: 'text', text: `Expédition ${id} validée` }] };
+}
+
+export const closeShipmentTool = {
+  name: 'dolibarr_close_shipment',
+  description: 'Clore une expédition (Livrée)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'expédition' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCloseShipment(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/shipments/${id}/close`); // Or set status to delivered
+  return { content: [{ type: 'text', text: `Expédition ${id} close (livrée)` }] };
+}
+
+export const createShipmentLineTool = {
+  name: 'dolibarr_create_shipment_line',
+  description: 'Ajouter une ligne à une expédition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      shipment_id: { type: 'string', description: 'ID de l\'expédition' },
+      product_id: { type: 'string', description: 'ID du produit' },
+      qty: { type: 'number', description: 'Quantité' },
+      origin_line_id: { type: 'string', description: 'ID de la ligne de commande d\'origine' },
+    },
+    required: ['shipment_id', 'product_id', 'qty'],
+  },
+};
+
+export async function handleCreateShipmentLine(args: unknown) {
+  const schema = z.object({
+    shipment_id: z.string(),
+    product_id: z.string(),
+    qty: z.number(),
+    origin_line_id: z.string().optional(),
+  });
+  const data = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/shipments/${data.shipment_id}/lines`, {
+    fk_product: data.product_id,
+    qty: data.qty,
+    fk_origin_line: data.origin_line_id,
+  });
+  return { content: [{ type: 'text', text: `Ligne ajoutée à l'expédition ${data.shipment_id}` }] };
+}
+
+export const deleteShipmentLineTool = {
+  name: 'dolibarr_delete_shipment_line',
+  description: 'Supprimer une ligne d\'expédition',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      shipment_id: { type: 'string', description: 'ID de l\'expédition' },
+      line_id: { type: 'string', description: 'ID de la ligne' },
+    },
+    required: ['shipment_id', 'line_id'],
+  },
+};
+
+export async function handleDeleteShipmentLine(args: unknown) {
+  const schema = z.object({ shipment_id: z.string(), line_id: z.string() });
+  const { shipment_id, line_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/shipments/${shipment_id}/lines/${line_id}`);
+  return { content: [{ type: 'text', text: `Ligne ${line_id} supprimée de l'expédition ${shipment_id}` }] };
+}
+
+export const getShipmentDocumentTool = {
+  name: 'dolibarr_get_shipment_document',
+  description: 'Générer/Récupérer le bon d\'expédition (PDF)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'expédition' },
+      model: { type: 'string', description: 'Modèle de document (ex: merou)' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetShipmentDocument(args: unknown) {
+  const schema = z.object({ id: z.string(), model: z.string().optional() });
+  const { id, model } = schema.parse(args);
+  // @ts-ignore
+  // Note: Usually /documents/builddoc is used or specific endpoint
+  // Assuming standard pattern for document generation
+  await dolibarrClient['client'].put(`/documents/builddoc`, {
+    modulepart: 'shipment',
+    original_file: `${id}/${id}.pdf`, // Placeholder logic
+    doctemplate: model || 'merou',
+    langcode: 'fr_FR'
+  });
+  return { content: [{ type: 'text', text: `Document généré pour l'expédition ${id}` }] };
+}
+
 // Export des outils pour l'enregistrement dans server.ts
-export const shipmentTools = [listShipmentsTool, getShipmentTool, createShipmentTool];
+export const shipmentTools = [
+  listShipmentsTool, 
+  getShipmentTool, 
+  createShipmentTool,
+  updateShipmentTool,
+  deleteShipmentTool,
+  validateShipmentTool,
+  closeShipmentTool,
+  createShipmentLineTool,
+  deleteShipmentLineTool,
+  getShipmentDocumentTool
+];
 

@@ -72,6 +72,8 @@ export const UpdateThirdPartyArgsSchema = z.object({
   zip: z.string().optional(),
   town: z.string().optional(),
   status: z.string().optional(),
+  note_private: z.string().optional(),
+  note_public: z.string().optional(),
 });
 
 // Contacts
@@ -224,7 +226,7 @@ export const ProductSchema = z.object({
   id: z.string(),
   ref: z.string().optional(),
   label: z.string(),
-  price: z.number().optional(),
+  price: z.union([z.number(), z.string()]).optional(), // Dolibarr renvoie string, on accepte les deux
 }).passthrough();
 
 export const GetProductArgsSchema = z.object({
@@ -518,6 +520,8 @@ export const CreateContractArgsSchema = z.object({
   socid: z.string().min(1, 'L\'ID du tiers est requis'),
   date_contrat: z.number().int().positive().optional(),
   ref: z.string().optional(),
+  commercial_signature_id: z.string().optional(),
+  commercial_suivi_id: z.string().optional(),
 });
 
 export type Contract = z.infer<typeof ContractSchema>;
@@ -636,6 +640,7 @@ export const CreateInterventionArgsSchema = z.object({
   socid: z.string().min(1, 'L\'ID du tiers est requis'),
   description: z.string().optional(),
   datec: z.number().int().positive().optional(),
+  fk_project: z.string().optional(),
 });
 
 export type Intervention = z.infer<typeof InterventionSchema>;

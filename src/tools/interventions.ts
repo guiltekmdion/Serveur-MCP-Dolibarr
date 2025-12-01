@@ -3,6 +3,7 @@
  * Auteur: Maxime DION (Guiltek)
  */
 import { dolibarrClient } from '../services/dolibarr.js';
+import { z } from 'zod';
 import { ListInterventionsArgsSchema, GetInterventionArgsSchema, CreateInterventionArgsSchema } from '../types/index.js';
 
 /**
@@ -95,9 +96,13 @@ export const createInterventionTool = {
       datec: {
         type: 'number',
         description: 'Date de création (timestamp Unix)'
+      },
+      fk_project: {
+        type: 'string',
+        description: 'ID du projet associé (obligatoire)'
       }
     },
-    required: ['socid']
+    required: ['socid', 'fk_project']
   }
 };
 
@@ -114,6 +119,212 @@ export async function handleCreateIntervention(args: unknown) {
   };
 }
 
+// === NOUVEAUX OUTILS INTERVENTIONS ===
+
+export const updateInterventionTool = {
+  name: 'dolibarr_update_intervention',
+  description: 'Mettre à jour une intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'intervention' },
+      description: { type: 'string', description: 'Description' },
+      date: { type: 'number', description: 'Date' },
+      duration: { type: 'number', description: 'Durée (secondes)' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleUpdateIntervention(args: unknown) {
+  const schema = z.object({
+    id: z.string(),
+    description: z.string().optional(),
+    date: z.number().optional(),
+    duration: z.number().optional(),
+  });
+  const { id, ...data } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/interventions/${id}`, data);
+  return { content: [{ type: 'text', text: `Intervention ${id} mise à jour` }] };
+}
+
+export const deleteInterventionTool = {
+  name: 'dolibarr_delete_intervention',
+  description: 'Supprimer une intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'intervention' } },
+    required: ['id'],
+  },
+};
+
+export async function handleDeleteIntervention(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/interventions/${id}`);
+  return { content: [{ type: 'text', text: `Intervention ${id} supprimée` }] };
+}
+
+export const validateInterventionTool = {
+  name: 'dolibarr_validate_intervention',
+  description: 'Valider une intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'intervention' } },
+    required: ['id'],
+  },
+};
+
+export async function handleValidateIntervention(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/interventions/${id}/validate`);
+  return { content: [{ type: 'text', text: `Intervention ${id} validée` }] };
+}
+
+export const closeInterventionTool = {
+  name: 'dolibarr_close_intervention',
+  description: 'Clore une intervention (Terminée)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: { id: { type: 'string', description: 'ID de l\'intervention' } },
+    required: ['id'],
+  },
+};
+
+export async function handleCloseIntervention(args: unknown) {
+  const schema = z.object({ id: z.string() });
+  const { id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/interventions/${id}/close`); // Or set status to done
+  return { content: [{ type: 'text', text: `Intervention ${id} close` }] };
+}
+
+export const addInterventionLineTool = {
+  name: 'dolibarr_add_intervention_line',
+  description: 'Ajouter une ligne à une intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      intervention_id: { type: 'string', description: 'ID de l\'intervention' },
+      description: { type: 'string', description: 'Description' },
+      date: { type: 'number', description: 'Date' },
+      duration: { type: 'number', description: 'Durée (secondes)' },
+    },
+    required: ['intervention_id', 'description', 'date', 'duration'],
+  },
+};
+
+export async function handleAddInterventionLine(args: unknown) {
+  const schema = z.object({
+    intervention_id: z.string(),
+    description: z.string(),
+    date: z.number(),
+    duration: z.number(),
+  });
+  const data = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].post(`/interventions/${data.intervention_id}/lines`, {
+    desc: data.description,
+    date: data.date,
+    duration: data.duration,
+  });
+  return { content: [{ type: 'text', text: `Ligne ajoutée à l'intervention ${data.intervention_id}` }] };
+}
+
+export const updateInterventionLineTool = {
+  name: 'dolibarr_update_intervention_line',
+  description: 'Mettre à jour une ligne d\'intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      intervention_id: { type: 'string', description: 'ID de l\'intervention' },
+      line_id: { type: 'string', description: 'ID de la ligne' },
+      description: { type: 'string', description: 'Description' },
+      duration: { type: 'number', description: 'Durée' },
+    },
+    required: ['intervention_id', 'line_id'],
+  },
+};
+
+export async function handleUpdateInterventionLine(args: unknown) {
+  const schema = z.object({
+    intervention_id: z.string(),
+    line_id: z.string(),
+    description: z.string().optional(),
+    duration: z.number().optional(),
+  });
+  const { intervention_id, line_id, ...data } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/interventions/${intervention_id}/lines/${line_id}`, {
+    desc: data.description,
+    duration: data.duration,
+  });
+  return { content: [{ type: 'text', text: `Ligne ${line_id} mise à jour` }] };
+}
+
+export const deleteInterventionLineTool = {
+  name: 'dolibarr_delete_intervention_line',
+  description: 'Supprimer une ligne d\'intervention',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      intervention_id: { type: 'string', description: 'ID de l\'intervention' },
+      line_id: { type: 'string', description: 'ID de la ligne' },
+    },
+    required: ['intervention_id', 'line_id'],
+  },
+};
+
+export async function handleDeleteInterventionLine(args: unknown) {
+  const schema = z.object({ intervention_id: z.string(), line_id: z.string() });
+  const { intervention_id, line_id } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].delete(`/interventions/${intervention_id}/lines/${line_id}`);
+  return { content: [{ type: 'text', text: `Ligne ${line_id} supprimée de l'intervention ${intervention_id}` }] };
+}
+
+export const getInterventionDocumentTool = {
+  name: 'dolibarr_get_intervention_document',
+  description: 'Générer/Récupérer la fiche d\'intervention (PDF)',
+  inputSchema: {
+    type: 'object' as const,
+    properties: {
+      id: { type: 'string', description: 'ID de l\'intervention' },
+      model: { type: 'string', description: 'Modèle de document (ex: soleil)' },
+    },
+    required: ['id'],
+  },
+};
+
+export async function handleGetInterventionDocument(args: unknown) {
+  const schema = z.object({ id: z.string(), model: z.string().optional() });
+  const { id, model } = schema.parse(args);
+  // @ts-ignore
+  await dolibarrClient['client'].put(`/documents/builddoc`, {
+    modulepart: 'fichinter',
+    original_file: `${id}/${id}.pdf`,
+    doctemplate: model || 'soleil',
+    langcode: 'fr_FR'
+  });
+  return { content: [{ type: 'text', text: `Document généré pour l'intervention ${id}` }] };
+}
+
 // Export des outils pour l'enregistrement dans server.ts
-export const interventionTools = [listInterventionsTool, getInterventionTool, createInterventionTool];
+export const interventionTools = [
+  listInterventionsTool, 
+  getInterventionTool, 
+  createInterventionTool,
+  updateInterventionTool,
+  deleteInterventionTool,
+  validateInterventionTool,
+  closeInterventionTool,
+  addInterventionLineTool,
+  updateInterventionLineTool,
+  deleteInterventionLineTool,
+  getInterventionDocumentTool
+];
 
