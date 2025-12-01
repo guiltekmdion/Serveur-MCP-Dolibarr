@@ -71,7 +71,8 @@ Le serveur expose **105+ outils MCP** couvrant toute l'API Dolibarr :
 - `dolibarr_list_agenda_events` - `dolibarr_get_agenda_event` - `dolibarr_create_agenda_event`
 
 ### 💳 Notes de Frais - NOUVEAU
-- `dolibarr_list_expense_reports` - `dolibarr_get_expense_report`
+
+- `dolibarr_list_expense_reports` - `dolibarr_get_expense_report` - `dolibarr_create_expense_report`
 
 ### 🔧 Interventions (Fichinter) - NOUVEAU
 - `dolibarr_list_interventions` - `dolibarr_get_intervention` - `dolibarr_create_intervention`
@@ -91,6 +92,11 @@ Le serveur expose **105+ outils MCP** couvrant toute l'API Dolibarr :
 ### 💳 Abonnements (Subscriptions) - NOUVEAU
 - `dolibarr_list_subscriptions` - `dolibarr_create_subscription`
 - `dolibarr_renew_subscription` - `dolibarr_cancel_subscription`
+
+### 📊 Analyse & Dashboard - NOUVEAU
+
+- `dolibarr_get_sales_stats` - `dolibarr_get_top_customers`
+- `dolibarr_get_global_status`
 
 [📚 Documentation complète des outils](./docs/03-tools.md)
 [🚀 Modules avancés détaillés](./docs/ADVANCED-MODULES.md)

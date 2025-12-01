@@ -1311,6 +1311,8 @@ Crée un nouveau contrat.
 ```typescript
 {
   socid: string;
+  commercial_signature_id: string; // ID du commercial signataire (requis)
+  commercial_suivi_id: string;     // ID du commercial de suivi (requis)
   ref?: string;
   date_contrat?: number;
   note_public?: string;
@@ -1553,7 +1555,7 @@ Crée une note de frais.
 **Paramètres :**
 ```typescript
 {
-  fk_user: string;
+  user_id: string;      // ID utilisateur (requis)
   date_debut: number;
   date_fin: number;
   note_public?: string;
@@ -1601,6 +1603,7 @@ Crée une intervention.
 ```typescript
 {
   socid: string;
+  fk_project: string;   // ID du projet (requis)
   description: string;
   date?: number;
   duration?: number;

@@ -211,6 +211,8 @@ Crée un nouveau contrat.
 
 **Paramètres:**
 - `socid` (string, obligatoire) : ID du tiers client
+- `commercial_signature_id` (string, obligatoire) : ID du commercial signataire
+- `commercial_suivi_id` (string, obligatoire) : ID du commercial de suivi
 - `date_contrat` (number, optionnel) : Date du contrat (timestamp Unix)
 - `ref` (string, optionnel) : Référence personnalisée
 
@@ -298,6 +300,17 @@ Récupère les détails d'une note de frais.
 **Paramètres:**
 - `id` (string, obligatoire) : ID de la note de frais
 
+### `dolibarr_create_expense_report`
+
+Crée une nouvelle note de frais.
+
+**Paramètres:**
+- `user_id` (string, obligatoire) : ID de l'utilisateur auteur
+- `date_debut` (number, optionnel) : Date de début (timestamp Unix)
+- `date_fin` (number, optionnel) : Date de fin (timestamp Unix)
+- `note_private` (string, optionnel) : Note privée
+- `note_public` (string, optionnel) : Note publique
+
 ---
 
 ## 🔧 Gestion des Interventions (Fichinter)
@@ -324,6 +337,7 @@ Crée une fiche d'intervention.
 
 **Paramètres:**
 - `socid` (string, obligatoire) : ID du tiers client
+- `fk_project` (string, obligatoire) : ID du projet associé
 - `description` (string, optionnel) : Description de l'intervention
 - `datec` (number, optionnel) : Date de création (timestamp Unix)
 
