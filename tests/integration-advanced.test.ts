@@ -52,6 +52,7 @@ describe('🏗️ Prérequis - Création Tiers et Produit', () => {
       price: 50,
       tva_tx: 20,
       status: '1',
+      status_buy: '1',
     });
     assert.ok(id);
     TEST_CONFIG.createdIds.product = id;
@@ -87,8 +88,8 @@ describe('🏭 Entrepôts et Stock', () => {
     assert.ok(TEST_CONFIG.createdIds.warehouse);
     
     const result = await dolibarrClient.createStockMovement({
-      product_id: TEST_CONFIG.createdIds.product,
-      warehouse_id: TEST_CONFIG.createdIds.warehouse,
+      product_id: TEST_CONFIG.createdIds.product!,
+      warehouse_id: TEST_CONFIG.createdIds.warehouse!,
       qty: 10,
       label: 'Initial Stock MCP',
       type: '3', // Correction/Ajout ? Vérifier API. Souvent 3=Correction
@@ -99,8 +100,8 @@ describe('🏭 Entrepôts et Stock', () => {
 
   it('LIST STOCK - devrait voir le mouvement', async () => {
     const movements = await dolibarrClient.listStockMovements({
-      product_id: TEST_CONFIG.createdIds.product,
-      warehouse_id: TEST_CONFIG.createdIds.warehouse,
+      product_id: TEST_CONFIG.createdIds.product!,
+      warehouse_id: TEST_CONFIG.createdIds.warehouse!,
     });
     assert.ok(movements.length > 0);
   });
@@ -120,7 +121,7 @@ describe('🎫 Tickets', () => {
         subject: `Ticket MCP ${TEST_CONFIG.timestamp}`,
         message: 'Problème de test',
         type_code: 'ISSUE', 
-        socid: TEST_CONFIG.createdIds.thirdparty,
+        fk_soc: TEST_CONFIG.createdIds.thirdparty!,
       });
       assert.ok(id);
       TEST_CONFIG.createdIds.ticket = id;
@@ -158,9 +159,9 @@ describe('💸 Notes de Frais', () => {
     assert.ok(TEST_CONFIG.createdIds.user);
     
     const id = await dolibarrClient.createExpenseReport({
-      user_id: TEST_CONFIG.createdIds.user,
-      date_start: Math.floor(Date.now() / 1000),
-      date_end: Math.floor(Date.now() / 1000),
+      user_id: TEST_CONFIG.createdIds.user!,
+      date_debut: Math.floor(Date.now() / 1000),
+      date_fin: Math.floor(Date.now() / 1000),
     });
     assert.ok(id);
     TEST_CONFIG.createdIds.expenseReport = id;
@@ -176,8 +177,8 @@ describe('🔧 Interventions', () => {
     assert.ok(TEST_CONFIG.createdIds.thirdparty);
     
     const id = await dolibarrClient.createIntervention({
-      socid: TEST_CONFIG.createdIds.thirdparty,
-      date: Math.floor(Date.now() / 1000),
+      socid: TEST_CONFIG.createdIds.thirdparty!,
+      datec: Math.floor(Date.now() / 1000),
     });
     assert.ok(id);
     TEST_CONFIG.createdIds.intervention = id;

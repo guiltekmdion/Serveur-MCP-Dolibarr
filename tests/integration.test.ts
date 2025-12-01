@@ -79,7 +79,6 @@ describe('👤 Tiers (ThirdParties) - CRUD', () => {
       address: '123 Test Street',
       zip: '75001',
       town: 'Paris',
-      country_code: 'FR',
       email: `test${TEST_CONFIG.timestamp}@example.com`,
     });
     assert.ok(id, 'L\'ID du tiers devrait être retourné');
@@ -111,7 +110,7 @@ describe('👤 Tiers (ThirdParties) - CRUD', () => {
       note_private: 'Test MCP - Updated at ' + new Date().toISOString(),
     });
     const updated = await dolibarrClient.getThirdParty(TEST_CONFIG.createdIds.thirdparty);
-    assert.ok(updated.note_private?.includes('Test MCP'), 'La note devrait être mise à jour');
+    assert.ok((updated as any).note_private?.includes('Test MCP'), 'La note devrait être mise à jour');
   });
 });
 
@@ -169,6 +168,7 @@ describe('🏷️ Produits - CRUD', () => {
       price: 100,
       tva_tx: 20,
       status: '1',
+      status_buy: '1',
     });
     assert.ok(id, 'L\'ID du produit devrait être retourné');
     TEST_CONFIG.createdIds.product = id;
@@ -197,7 +197,7 @@ describe('🏷️ Produits - CRUD', () => {
     const updated = await dolibarrClient.getProduct(TEST_CONFIG.createdIds.product);
     // Note: Le prix peut être retourné comme string ou number
     assert.ok(
-      parseFloat(String(updated.price)) === 150 || updated.description?.includes('Updated'),
+      parseFloat(String(updated.price)) === 150 || (updated as any).description?.includes('Updated'),
       'Le produit devrait être mis à jour'
     );
   });
