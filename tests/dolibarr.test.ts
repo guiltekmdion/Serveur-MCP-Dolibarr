@@ -35,7 +35,7 @@ describe('DolibarrClient', () => {
 
     await assert.rejects(
       async () => await dolibarrClient.getThirdParty('999'),
-      /Dolibarr API Error \(404\): Not Found/
+      /Dolibarr API Error \(404\): Ressource non trouvée/
     );
   });
 
@@ -90,12 +90,68 @@ describe('DolibarrClient', () => {
       desc: 'Service Test',
       subprice: 100,
       qty: 1,
-      tva_tx: 20
+      tva_tx: 20,
+      fk_product: undefined,
+      product_type: 1, // Service
     };
 
-    mock.onPost('/proposals/200/lines').reply(200, '50');
+    // Note: Dolibarr utilise /line (singulier) pour ajouter UNE ligne
+    mock.onPost('/proposals/200/line').reply(200, '50');
 
     const result = await dolibarrClient.addProposalLine(lineData);
     assert.strictEqual(result, '50');
+  });
+
+  it('should generate PDF using documents/builddoc', async () => {
+    // D'abord mock la récupération de la proposition pour obtenir la ref
+    mock.onGet('/proposals/7').reply(200, {
+      id: '7',
+      ref: 'PR2511-0001',
+      socid: '1',
+      status: 1,
+      date: 1700000000,
+    });
+
+    // Puis mock la génération du PDF
+    mock.onPut('/documents/builddoc').reply(200, {
+      filename: 'PR2511-0001',
+      'content-type': 'application/octet-stream',
+      filesize: 4096,
+      encoding: 'base64',
+      content: 'JVBERi0xLjQ=', // fake base64 PDF content
+    });
+
+    const result = await dolibarrClient.generatePdf('propal', '7');
+    assert.ok(result.filename);
+  });
+
+  it('should update a third party', async () => {
+    const updateData = {
+      id: '1',
+      name: 'Updated Company',
+      email: 'updated@example.com'
+    };
+
+    mock.onPut('/thirdparties/1').reply(200, updateData);
+
+    await assert.doesNotReject(async () => {
+      await dolibarrClient.updateThirdParty(updateData);
+    });
+  });
+
+  it('should upload a document', async () => {
+    const docData = {
+      filename: 'test.txt',
+      modulepart: 'proposal',
+      ref: 'PR2511-0001',
+      filecontent: 'base64content',
+      fileencoding: 'base64' as const,
+      overwrite: true
+    };
+
+    mock.onPost('/documents/upload').reply(200, 'test.txt');
+
+    const result = await dolibarrClient.uploadDocument(docData);
+    assert.strictEqual(result, 'test.txt');
   });
 });
