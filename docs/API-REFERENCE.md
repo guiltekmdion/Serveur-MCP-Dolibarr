@@ -2282,7 +2282,7 @@ Format : `(champ:operateur:valeur)`
 
 ---
 
-**Total : 105+ outils documentés**
+**Total : 212 outils documentés**
 
 **Version : 2.0.0**  
 **Auteur : Maxime DION (Guiltek)**  

@@ -14,7 +14,7 @@ Ce serveur permet aux agents IA comme Claude Desktop, ChatGPT (via adaptateur MC
 
 ## 🛠 Outils Inclus
 
-Le serveur expose **105+ outils MCP** couvrant toute l'API Dolibarr :
+Le serveur expose **212 outils MCP** couvrant toute l'API Dolibarr :
 
 ### 📇 Tiers (Thirdparties)
 - `dolibarr_get_thirdparty` - `dolibarr_search_thirdparties`
@@ -237,7 +237,7 @@ tests/                  # Tests unitaires
 - [Déploiement Docker](./docs/04-docker.md)
 
 ### 📖 Référence API
-- [Référence API Complète](./docs/API-REFERENCE.md) - **105+ outils documentés**
+- [Référence API Complète](./docs/API-REFERENCE.md) - **212 outils documentés**
 - [Liste des Outils MCP](./docs/03-tools.md)
 - [Exploration API](./docs/API_EXPLORATION.md)
 

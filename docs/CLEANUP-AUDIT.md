@@ -109,7 +109,7 @@ IMPLEMENTATION-SUMMARY.md
 ```
 📁 Fichiers du projet : 68 fichiers
 📦 Total lignes de code : ~8000 lignes
-🛠️  Outils MCP : 105+
+🛠️  Outils MCP : 212
 📚 Documentation : 7 fichiers MD dans docs/
 🧪 Tests : 2 fichiers dans tests/
 ```
