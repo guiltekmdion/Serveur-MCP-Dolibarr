@@ -1,24 +1,88 @@
-# Guide de Contribution
+<div align="center">
 
-Merci de votre intérêt pour contribuer au projet Serveur MCP Dolibarr ! 🎉
+# 🤝 Guide de Contribution
 
-Ce guide vous aidera à contribuer efficacement au projet.
+### Merci de votre intérêt pour contribuer au Serveur MCP Dolibarr ! 
 
-## Table des matières
+Nous sommes ravis de vous accueillir dans notre communauté. Chaque contribution, petite ou grande, est précieuse et appréciée ! 💝
 
-1. [Code de conduite](#code-de-conduite)
-2. [Comment contribuer](#comment-contribuer)
-3. [Signaler un bug](#signaler-un-bug)
-4. [Proposer une fonctionnalité](#proposer-une-fonctionnalité)
-5. [Soumettre une Pull Request](#soumettre-une-pull-request)
-6. [Standards de code](#standards-de-code)
-7. [Structure du projet](#structure-du-projet)
-8. [Tests](#tests)
-9. [Documentation](#documentation)
+[![Contributors](https://img.shields.io/github/contributors/guiltekmdion/Serveur-MCP-Dolibarr)](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/graphs/contributors)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![First Timers Welcome](https://img.shields.io/badge/first--timers--only-friendly-blue.svg)](https://www.firsttimersonly.com/)
+
+</div>
 
 ---
 
-## Code de conduite
+---
+
+## 📋 Table des matières
+
+- [🌟 Pourquoi contribuer ?](#-pourquoi-contribuer-)
+- [💡 Types de contributions](#-types-de-contributions)
+- [🚀 Démarrage rapide](#-démarrage-rapide)
+- [📜 Code de conduite](#-code-de-conduite)
+- [🐛 Signaler un bug](#-signaler-un-bug)
+- [💡 Proposer une fonctionnalité](#-proposer-une-fonctionnalité)
+- [🔧 Soumettre une Pull Request](#-soumettre-une-pull-request)
+- [✨ Standards de code](#-standards-de-code)
+- [🏗️ Structure du projet](#️-structure-du-projet)
+- [🧪 Tests](#-tests)
+- [📚 Documentation](#-documentation)
+
+---
+
+## 🌟 Pourquoi contribuer ?
+
+Contribuer à l'open source, c'est :
+- 🎓 **Apprendre** de nouvelles compétences
+- 🤝 **Rencontrer** des développeurs passionnés
+- 🌟 **Construire** votre portfolio
+- 💪 **Améliorer** un outil utilisé par la communauté
+- 🎉 **S'amuser** en codant !
+
+## 💡 Types de contributions
+
+Toutes les contributions sont les bienvenues :
+
+| Type | Description | Niveau |
+|------|-------------|--------|
+| 📝 **Documentation** | Améliorer les docs, corriger des typos | 🟢 Débutant |
+| 🐛 **Bug fixes** | Corriger des bugs existants | 🟡 Intermédiaire |
+| ✨ **Nouvelles fonctionnalités** | Ajouter de nouveaux outils MCP | 🟠 Avancé |
+| 🧪 **Tests** | Ajouter ou améliorer les tests | 🟡 Intermédiaire |
+| 🎨 **Design** | Améliorer l'UX/UI de la documentation | 🟢 Débutant |
+| 🌍 **Traductions** | Traduire la documentation | 🟢 Débutant |
+
+## 🚀 Démarrage rapide
+
+```bash
+# 1. Forkez le repo sur GitHub
+# 2. Clonez votre fork
+git clone https://github.com/votre-username/Serveur-MCP-Dolibarr.git
+cd Serveur-MCP-Dolibarr
+
+# 3. Installez les dépendances
+npm install
+
+# 4. Créez une branche
+git checkout -b feature/ma-super-contribution
+
+# 5. Faites vos modifications
+# 6. Testez vos changements
+npm run test
+npm run lint
+
+# 7. Commitez et pushez
+git commit -m "feat: ajout d'une super fonctionnalité"
+git push origin feature/ma-super-contribution
+
+# 8. Ouvrez une Pull Request sur GitHub
+```
+
+---
+
+## 📜 Code de conduite
 
 En participant à ce projet, vous vous engagez à maintenir un environnement respectueux et inclusif pour tous.
 

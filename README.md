@@ -1,7 +1,21 @@
-# Serveur MCP Dolibarr
+<div align="center">
 
-Un serveur MCP (Model Context Protocol) robuste et prêt pour la production pour Dolibarr ERP/CRM.
-Ce serveur permet aux agents IA comme Claude Desktop, ChatGPT (via adaptateur MCP) et autres d'interagir avec votre instance Dolibarr de manière sécurisée via son API REST.
+# 🚀 Serveur MCP Dolibarr
+
+### Connectez votre Dolibarr ERP/CRM à l'Intelligence Artificielle
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
+[![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-purple)](https://modelcontextprotocol.io/)
+
+Un serveur MCP (Model Context Protocol) **robuste et prêt pour la production** qui permet aux agents IA comme Claude Desktop, ChatGPT et autres d'interagir avec votre instance Dolibarr de manière sécurisée via son API REST.
+
+[🚀 Démarrage Rapide](#-installation) • [📚 Documentation](#-documentation) • [🤝 Contribuer](#-contribuer) • [💬 Support](#-support)
+
+</div>
+
+---
 
 ## 🚀 Fonctionnalités
 
@@ -230,38 +244,138 @@ tests/                  # Tests unitaires
 
 ## 📚 Documentation
 
+<table>
+<tr>
+<td width="33%" valign="top">
+
 ### 🚀 Démarrage
 - [Installation](./docs/01-installation.md)
 - [Configuration](./docs/02-configuration.md)
 - [Démarrage Rapide](./docs/QUICKSTART.md)
 - [Déploiement Docker](./docs/04-docker.md)
 
+</td>
+<td width="33%" valign="top">
+
 ### 📖 Référence API
-- [Référence API Complète](./docs/API-REFERENCE.md) - **212 outils documentés**
+- [**212 outils documentés**](./docs/API-REFERENCE.md)
 - [Liste des Outils MCP](./docs/03-tools.md)
 - [Exploration API](./docs/API_EXPLORATION.md)
+
+</td>
+<td width="33%" valign="top">
 
 ### 🎯 Guides & Cas d'Usage
 - [50 Cas d'Usage](./docs/50-USE-CASES.md)
 - [Modules Avancés](./docs/ADVANCED-MODULES.md)
-- [Quick Start Modules Avancés](./docs/QUICKSTART-ADVANCED.md)
+- [Quick Start Avancé](./docs/QUICKSTART-ADVANCED.md)
 
-### 📝 Changelog & Migration
+</td>
+</tr>
+</table>
+
+### 📝 Changelog & Compatibilité
 - [Changelog Complet](./CHANGELOG.md)
 - [Comparatif des Versions](./CHANGELOG-V2.md)
 - [Résumé Implémentation v2.0](./IMPLEMENTATION-SUMMARY.md)
 
-### 🔧 Compatibilité
-- [Compatibilité API Dolibarr](./docs/COMPATIBILITY.md)
-- [Structure du Projet](./docs/PROJECT_STRUCTURE.md)
+### 📝 Changelog & Compatibilité
+- [Changelog Complet](./CHANGELOG.md) • [Comparatif des Versions](./CHANGELOG-V2.md) • [Résumé v2.0](./IMPLEMENTATION-SUMMARY.md)
+- [Compatibilité API Dolibarr](./docs/COMPATIBILITY.md) • [Structure du Projet](./docs/PROJECT_STRUCTURE.md)
+
+---
+
+## 🤝 Contribuer
+
+Nous accueillons chaleureusement toutes les contributions ! 💝
+
+<table>
+<tr>
+<td width="33%" align="center">
+
+### 🐛 Signaler un bug
+[Ouvrir une issue](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues/new)
+
+</td>
+<td width="33%" align="center">
+
+### 💡 Proposer une fonctionnalité
+[Suggérer une idée](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues/new)
+
+</td>
+<td width="33%" align="center">
+
+### 🔧 Contribuer au code
+[Guide de contribution](./CONTRIBUTING.md)
+
+</td>
+</tr>
+</table>
+
+### ⭐ Contributors
+
+Merci à toutes les personnes qui contribuent à ce projet !
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- Utilisez https://allcontributors.org/ pour ajouter des contributeurs -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+Vous souhaitez apparaître ici ? Consultez notre [Guide de contribution](./CONTRIBUTING.md) !
+
+---
+
+## 💬 Support
+
+- 📖 [Documentation complète](./docs/INDEX.md)
+- 💬 [Discussions GitHub](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/discussions)
+- 🐛 [Issues GitHub](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues)
+- 📧 Contact : [Guiltek](https://guiltek.com)
+
+---
 
 ## 👥 Auteurs et Crédits
 
-Ce projet a été initié et développé par **Maxime DION** pour **Guiltek**.
+<table>
+<tr>
+<td align="center">
+<img src="https://avatars.githubusercontent.com/u/114142370?v=4" width="100px;" alt="Maxime DION"/>
+<br />
+<sub><b>Maxime DION</b></sub>
+<br />
+<sub>Créateur & Mainteneur</sub>
+<br />
+<a href="https://guiltek.com">🌐 Guiltek</a>
+</td>
+<td>
 
-- **Auteur Principal** : Maxime DION
-- **Organisation** : [Guiltek](https://guiltek.com)
+**Projet initié et développé par [Maxime DION](https://guiltek.com)**
+
+Ce serveur MCP a été créé pour faciliter l'intégration de Dolibarr avec les outils d'IA modernes. L'objectif est de rendre Dolibarr plus accessible et puissant grâce à l'intelligence artificielle.
+
+**Organisation** : [Guiltek](https://guiltek.com)
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 📜 Licence
 
-MIT
+MIT License - voir le fichier [LICENSE](./LICENSE) pour plus de détails.
+
+```
+Copyright (c) 2024 Maxime DION (Guiltek)
+```
+
+---
+
+<div align="center">
+
+**⭐ Si ce projet vous est utile, n'hésitez pas à lui donner une étoile sur GitHub ! ⭐**
+
+Fait avec ❤️ par [Guiltek](https://guiltek.com)
+
+[🔝 Retour en haut](#-serveur-mcp-dolibarr)
+
+</div>
