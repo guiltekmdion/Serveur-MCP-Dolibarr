@@ -58,7 +58,7 @@ notepad .env
 **Remplacez ces lignes** :
 
 ```bash
-DOLIBARR_URL=https://votre-dolibarr.com
+DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
 DOLIBARR_API_KEY=votre_cle_api_ici
 ```
 
@@ -118,9 +118,9 @@ nano ~/.config/Claude/claude_desktop_config.json
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/chemin/vers/dolibarr-mcp-server/index.js"],
+      "args": ["/chemin/vers/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://votre-dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "votre_cle_api"
       }
     }
@@ -135,9 +135,9 @@ nano ~/.config/Claude/claude_desktop_config.json
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/Users/john/dolibarr-mcp-server/index.js"],
+      "args": ["/Users/john/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://demo.dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://demo.dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "1a2b3c4d5e6f"
       }
     }
@@ -308,7 +308,7 @@ Le `_` devant "dolibarr" désactive le serveur.
 ### Fichier `.env` (dans le projet)
 
 ```bash
-DOLIBARR_URL=https://votre-dolibarr.com
+DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
 DOLIBARR_API_KEY=votre_cle_api
 ```
 
@@ -323,9 +323,9 @@ DOLIBARR_API_KEY=votre_cle_api
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/CHEMIN/ABSOLU/vers/dolibarr-mcp-server/index.js"],
+      "args": ["/CHEMIN/ABSOLU/vers/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://votre-dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "votre_cle_api"
       }
     }

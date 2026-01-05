@@ -135,9 +135,9 @@ npm start  # Tester
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/chemin/absolu/vers/dolibarr-mcp-server/index.js"],
+      "args": ["/chemin/absolu/vers/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://votre-dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "votre_cle_api"
       }
     }

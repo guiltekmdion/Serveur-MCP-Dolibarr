@@ -189,7 +189,7 @@ Ajoutez ce qui suit à votre `claude_desktop_config.json` :
     "dolibarr": {
       "command": "node",
       "args": [
-        "/chemin/absolu/vers/serveur-mcp-dolibarr/dist/index.js"
+        "/chemin/absolu/vers/serveur-mcp-dolibarr/dist/server.js"
       ],
       "env": {
         "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
@@ -205,7 +205,7 @@ Ajoutez ce qui suit à votre `claude_desktop_config.json` :
 Vous pouvez utiliser le [MCP Inspector](https://github.com/modelcontextprotocol/inspector) pour tester le serveur.
 
 ```bash
-npx @modelcontextprotocol/inspector node dist/index.js
+npx @modelcontextprotocol/inspector node dist/server.js
 ```
 
 ## 🏗 Structure du Projet

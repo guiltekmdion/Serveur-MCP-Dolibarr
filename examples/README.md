@@ -17,7 +17,7 @@ Pour utiliser ce serveur avec Claude Desktop, ajoutez la configuration suivante 
         "run",
         "-i",
         "--rm",
-        "-e", "DOLIBARR_API_URL=https://votre-dolibarr.com/api/index.php",
+        "-e", "DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php",
         "-e", "DOLIBARR_API_KEY=votre_api_key",
         "mcp-dolibarr:latest"
       ]
@@ -37,7 +37,7 @@ Pour utiliser ce serveur avec Claude Desktop, ajoutez la configuration suivante 
         "C:/Chemin/Vers/Serveur-MCP-Dolibarr/dist/server.js"
       ],
       "env": {
-        "DOLIBARR_API_URL": "https://votre-dolibarr.com/api/index.php",
+        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "votre_api_key"
       }
     }

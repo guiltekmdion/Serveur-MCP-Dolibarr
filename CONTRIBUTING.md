@@ -396,7 +396,7 @@ describe('DolibarrClient', () => {
   it('should throw error with missing config', () => {
     assert.throws(
       () => new DolibarrClient(),
-      /DOLIBARR_URL.*required/
+      /DOLIBARR_BASE_URL.*required/
     );
   });
 });
