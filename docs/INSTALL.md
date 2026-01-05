@@ -203,13 +203,13 @@ notepad .env
 **Remplissez les valeurs** :
 
 ```bash
-DOLIBARR_URL=https://votre-dolibarr.com
+DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
 DOLIBARR_API_KEY=la_cle_api_generee_precedemment
 ```
 
-**⚠️ Ne mettez PAS de slash final à l'URL**
-- ✅ `https://mon-dolibarr.com`
-- ❌ `https://mon-dolibarr.com/`
+**⚠️ IMPORTANT: Utilisez l'URL complète incluant `/api/index.php`**
+- ✅ `https://mon-dolibarr.com/api/index.php`
+- ❌ `https://mon-dolibarr.com`
 
 ### 4.4 Test de fonctionnement
 
@@ -304,9 +304,9 @@ notepad %APPDATA%\Claude\claude_desktop_config.json
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/chemin/absolu/vers/dolibarr-mcp-server/index.js"],
+      "args": ["/chemin/absolu/vers/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://votre-dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "votre_cle_api"
       }
     }
@@ -351,9 +351,9 @@ cd
   "mcpServers": {
     "dolibarr": {
       "command": "node",
-      "args": ["/Users/john/dolibarr-mcp-server/index.js"],
+      "args": ["/Users/john/serveur-mcp-dolibarr/dist/server.js"],
       "env": {
-        "DOLIBARR_URL": "https://demo.dolibarr.com",
+        "DOLIBARR_BASE_URL": "https://demo.dolibarr.com/api/index.php",
         "DOLIBARR_API_KEY": "1a2b3c4d5e6f7g8h9i0j"
       }
     }
@@ -436,7 +436,7 @@ Configuration manquante !
 
 **Solution** :
 - Vérifiez que le fichier `.env` existe dans le dossier du projet
-- Vérifiez que `DOLIBARR_URL` et `DOLIBARR_API_KEY` sont renseignés
+- Vérifiez que `DOLIBARR_BASE_URL` et `DOLIBARR_API_KEY` sont renseignés
 
 ### Problème : "Pas de réponse de Dolibarr"
 

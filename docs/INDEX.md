@@ -20,7 +20,7 @@ Index exhaustif de toute la documentation du projet.
 ### Documentation Technique Complète
 
 **[API Reference Complète](./API-REFERENCE.md)** ⭐ **NOUVEAU**
-- 105+ outils MCP documentés en détail
+- 212 outils MCP documentés en détail
 - Paramètres d'entrée avec types TypeScript
 - Format des retours
 - Exemples d'utilisation
@@ -207,10 +207,10 @@ Documentation détaillée des 4 nouveaux modules :
 | v1.0.0 | 20 | 8 | ~10 | ~1000 |
 | v1.5.0 | 55 | 15 | ~25 | ~3000 |
 | v1.8.0 | 80 | 19 | ~40 | ~6000 |
-| **v2.0.0** | **105+** | **27** | **50+** | **15000+** |
+| **v2.0.0** | **212** | **27** | **50+** | **15000+** |
 
 ### Croissance
-- **Outils :** +425% (v1.0 → v2.0)
+- **Outils :** +960% (v1.0 → v2.0)
 - **Modules :** +238%
 - **Documentation :** +1400%
 
@@ -331,7 +331,7 @@ Documentation détaillée des 4 nouveaux modules :
 ### Dossier docs/
 - `START_HERE.md` - Point d'entrée
 - `INDEX.md` - Ce fichier ⭐ NOUVEAU
-- `API-REFERENCE.md` - Référence API complète (105+ outils) ⭐ NOUVEAU
+- `API-REFERENCE.md` - Référence API complète (212 outils) ⭐ NOUVEAU
 - `01-installation.md` - Installation
 - `02-configuration.md` - Configuration
 - `03-tools.md` - Liste des outils

@@ -173,7 +173,7 @@ docker pull ghcr.io/guiltekmdion/mcp-dolibarr:v1.3.0
 ```bash
 docker run -d \
   --name dolibarr-mcp \
-  -e DOLIBARR_URL=https://your-dolibarr.com \
+  -e DOLIBARR_BASE_URL=https://your-dolibarr.com/api/index.php \
   -e DOLIBARR_API_KEY=your_key \
   ghcr.io/guiltekmdion/mcp-dolibarr:latest
 ```

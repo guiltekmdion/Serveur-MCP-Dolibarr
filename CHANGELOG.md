@@ -137,7 +137,7 @@ Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications.
 ### 📚 Documentation
 
 - `docs/ADVANCED-MODULES.md` - 500+ lignes de documentation des modules
-- `docs/API-REFERENCE.md` - 2200+ lignes couvrant 105+ outils
+- `docs/API-REFERENCE.md` - 2200+ lignes couvrant 212 outils
 - `docs/QUICKSTART-ADVANCED.md` - Guide rapide modules avancés
 - `docs/INDEX.md` - Index complet de la documentation
 
@@ -147,7 +147,7 @@ Activez-le dans Dolibarr: Accueil → Configuration → Modules/Applications.
 - Intégration des 4 modules dans `server.ts`
 - Tests de bout en bout validés
 
-**Métriques :** 105+ outils total | ~8000 lignes de code
+**Métriques :** 212 outils total | ~8000 lignes de code
 
 ---
 

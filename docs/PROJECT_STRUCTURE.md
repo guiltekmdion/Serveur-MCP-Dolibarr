@@ -171,7 +171,7 @@ dolibarr-mcp-server/
 
 **Exemple** :
 ```bash
-DOLIBARR_URL=https://votre-dolibarr.com
+DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
 DOLIBARR_API_KEY=votre_cle_api
 WEBHOOK_PORT=3000
 WEBHOOK_SECRET=votre_secret

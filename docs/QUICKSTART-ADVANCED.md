@@ -421,4 +421,4 @@ Le token doit avoir les permissions suffisantes pour gérer les utilisateurs et 
 
 ---
 
-**Prêt à utiliser les 105+ outils MCP Dolibarr ! 🚀**
+**Prêt à utiliser les 212 outils MCP Dolibarr ! 🚀**

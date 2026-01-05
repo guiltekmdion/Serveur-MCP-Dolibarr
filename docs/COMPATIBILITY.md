@@ -114,7 +114,7 @@ const app = express();
 app.use(express.json());
 
 const dolibarr = new DolibarrClient(
-  process.env.DOLIBARR_URL,
+  process.env.DOLIBARR_BASE_URL,
   process.env.DOLIBARR_API_KEY
 );
 
@@ -222,7 +222,7 @@ import { DolibarrClient } from './dolibarr-client.js';
 
 const app = express();
 const dolibarr = new DolibarrClient(
-  process.env.DOLIBARR_URL,
+  process.env.DOLIBARR_BASE_URL,
   process.env.DOLIBARR_API_KEY
 );
 
@@ -380,7 +380,7 @@ const app = express();
 app.use(express.json());
 
 const dolibarr = new DolibarrClient(
-  process.env.DOLIBARR_URL,
+  process.env.DOLIBARR_BASE_URL,
   process.env.DOLIBARR_API_KEY
 );
 
