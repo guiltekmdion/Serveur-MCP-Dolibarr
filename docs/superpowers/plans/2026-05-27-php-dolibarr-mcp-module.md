@@ -1000,6 +1000,211 @@ git commit -m "fix(mcpserver): adjustments from Dolibarr runtime validation"
 
 ---
 
+## Task 12: Environnement de démo Docker (Dolibarr + données de test)
+
+**Files:**
+- Create: `demo/docker-compose.yml`
+- Create: `demo/docker-init.d/90-setup-mcp.php`
+- Create: `demo/run-demo.sh`
+- Create: `demo/README.md`
+
+**But :** instance Dolibarr jetable avec données de démo (`DOLI_INIT_DEMO=1`), module monté +
+`vendor/` installé, module activé/droit/clé API posés automatiquement, et un script de démo qui
+appelle l'endpoint MCP. Cette tâche est validée en live (Docker) par l'orchestrateur, pas par `php -l`.
+
+- [ ] **Step 1: Créer `demo/docker-compose.yml`**
+
+```yaml
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: dolibarr
+      MARIADB_USER: dolibarr
+      MARIADB_PASSWORD: dolibarr
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  composer:
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ../:/app
+    command: install --ignore-platform-reqs --no-interaction
+    profiles: ["tools"]
+
+  dolibarr:
+    image: dolibarr/dolibarr:21
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DOLI_DB_HOST: db
+      DOLI_DB_NAME: dolibarr
+      DOLI_DB_USER: dolibarr
+      DOLI_DB_PASSWORD: dolibarr
+      DOLI_DB_ROOT_LOGIN: root
+      DOLI_DB_ROOT_PASSWORD: rootpass
+      DOLI_ADMIN_LOGIN: admin
+      DOLI_ADMIN_PASSWORD: admin
+      DOLI_URL_ROOT: http://localhost:8080
+      DOLI_INIT_DEMO: "1"
+      DOLI_COMPANY_NAME: "Demo MCP"
+      DOLI_COMPANY_COUNTRYCODE: "FR"
+      DOLI_MODULES: "Societe,Facture,Stock"
+    ports:
+      - "8080:80"
+    volumes:
+      - ../:/var/www/html/custom/mcpserver
+      - ./docker-init.d:/var/www/scripts/docker-init.d
+      - doc_data:/var/www/documents
+
+volumes:
+  db_data:
+  doc_data:
+```
+
+- [ ] **Step 2: Créer `demo/docker-init.d/90-setup-mcp.php`** (activation module + droit + clé API)
+
+```php
+<?php
+/**
+ * Post-deploiement : active le module mcpserver, ouvre l'endpoint,
+ * accorde le droit 'use' a l'admin et pose une cle API de demo.
+ * Execute par le runner docker-init.d de l'image Dolibarr.
+ */
+if (!defined('NOSESSION')) {
+    define('NOSESSION', '1');
+}
+$res = @include '/var/www/html/master.inc.php';
+if (!$res) {
+    fwrite(STDERR, "master.inc.php introuvable\n");
+    exit(1);
+}
+require_once DOL_DOCUMENT_ROOT.'/core/lib/admin.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
+
+// 1. Activer le module (lance init() : droits + constantes)
+$result = activateModule('modMcpServer');
+echo "activateModule => ".json_encode($result)."\n";
+
+// 2. S'assurer que l'endpoint est actif
+dolibarr_set_const($db, 'MCPSERVER_ENABLED', '1', 'chaine', 0, '', 1);
+
+// 3. Accorder le droit mcpserver->use a l'admin (rowid 1) + cle API de demo
+$u = new User($db);
+$u->fetch(1);
+$u->addrights(500101, '', '', 0);
+$db->query("UPDATE ".MAIN_DB_PREFIX."user SET api_key = 'demo-mcp-key-123' WHERE rowid = 1");
+
+echo "MCP demo pret. Endpoint: /custom/mcpserver/mcp/server.php  DOLAPIKEY: demo-mcp-key-123\n";
+```
+
+- [ ] **Step 3: Créer `demo/run-demo.sh`** (handshake MCP + appel d'outil via curl)
+
+```bash
+#!/usr/bin/env bash
+# Démo MCP : initialize -> tools/list -> tools/call thirdparty_list
+set -euo pipefail
+
+ENDPOINT="${ENDPOINT:-http://localhost:8080/custom/mcpserver/mcp/server.php}"
+KEY="${KEY:-demo-mcp-key-123}"
+HDR=(-H "DOLAPIKEY: $KEY" -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream")
+
+echo "== initialize =="
+INIT_HEADERS="$(mktemp)"
+curl -sS -D "$INIT_HEADERS" "${HDR[@]}" -X POST "$ENDPOINT" -d '{
+  "jsonrpc":"2.0","id":1,"method":"initialize",
+  "params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"demo","version":"1.0"}}
+}'
+echo
+SID="$(grep -i '^mcp-session-id:' "$INIT_HEADERS" | awk '{print $2}' | tr -d '\r' || true)"
+echo "session=$SID"
+SIDHDR=(); [ -n "$SID" ] && SIDHDR=(-H "Mcp-Session-Id: $SID")
+
+echo "== notifications/initialized =="
+curl -sS "${HDR[@]}" "${SIDHDR[@]}" -X POST "$ENDPOINT" -d '{"jsonrpc":"2.0","method":"notifications/initialized"}' || true
+echo
+
+echo "== tools/list =="
+curl -sS "${HDR[@]}" "${SIDHDR[@]}" -X POST "$ENDPOINT" -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+echo
+
+echo "== tools/call thirdparty_list =="
+curl -sS "${HDR[@]}" "${SIDHDR[@]}" -X POST "$ENDPOINT" -d '{
+  "jsonrpc":"2.0","id":3,"method":"tools/call",
+  "params":{"name":"thirdparty_list","arguments":{"limit":5}}
+}'
+echo
+```
+
+- [ ] **Step 4: Créer `demo/README.md`**
+
+````markdown
+# Démo Docker — Dolibarr + MCP Server
+
+Environnement jetable pour démontrer le module en conditions réelles.
+
+## Lancer
+
+```bash
+cd demo
+docker compose run --rm composer            # installe vendor/ dans le module
+docker compose up -d                        # MariaDB + Dolibarr (données de démo)
+# attendre la fin de l'install (logs) :
+docker compose logs -f dolibarr             # Ctrl-C quand "MCP demo pret" apparait
+```
+
+- Dolibarr : http://localhost:8080 (admin / admin)
+- Endpoint MCP : http://localhost:8080/custom/mcpserver/mcp/server.php
+- Clé de démo : `DOLAPIKEY: demo-mcp-key-123`
+
+## Démo MCP
+
+```bash
+./run-demo.sh
+```
+
+Affiche le handshake MCP puis la liste des tiers issus des données de démo Dolibarr.
+
+## Arrêt / nettoyage
+
+```bash
+docker compose down -v
+```
+````
+
+- [ ] **Step 5: Rendre le script exécutable et committer**
+
+```bash
+chmod +x demo/run-demo.sh
+git add demo/
+git commit -m "feat(demo): dockerized Dolibarr demo env with test data and MCP demo script"
+```
+
+- [ ] **Step 6: Validation live (orchestrateur)**
+
+```bash
+cd demo
+docker compose run --rm composer
+docker compose up -d
+```
+Suivre `docker compose logs -f dolibarr` jusqu'au message `MCP demo pret`. Puis :
+- `curl -i -X POST http://localhost:8080/custom/mcpserver/mcp/server.php` (sans clé) → **401**.
+- `./run-demo.sh` → `tools/list` contient les 5 outils `thirdparty_*` et `thirdparty_list`
+  renvoie des tiers des données de démo.
+
+> Itération attendue ici (version d'image Dolibarr/PHP, comportement `docker-init.d`,
+> format SSE vs JSON du transport, signature `FileSessionStore`). Ajuster puis committer.
+
+---
+
 ## Notes d'implémentation
 
 - **Versions de paquets** : `mcp/sdk` est récent ; si `"*"` pose problème, fixer la version réelle
