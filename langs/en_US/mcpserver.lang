@@ -1,0 +1,8 @@
+# Module mcpserver - English
+Module500100Name=MCP Server
+Module500100Desc=Native MCP server exposing Dolibarr to AI agents (official PHP MCP SDK)
+McpServerSetup=MCP Server setup
+McpServerEndpoint=MCP endpoint URL
+McpServerEnabled=Enable MCP endpoint
+McpServerApiKeyHint=Each user must generate an API key (DOLAPIKEY) in their user card and be granted the "Access the MCP server" permission.
+Permission500101=Access the MCP server (use the MCP API)
