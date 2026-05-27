@@ -19,6 +19,10 @@ class McpAuth
     {
         global $conf;
 
+        if (!function_exists('dolEncrypt')) {
+            require_once DOL_DOCUMENT_ROOT.'/core/lib/security.lib.php';
+        }
+
         $headers = function_exists('getallheaders') ? array_change_key_case(getallheaders(), CASE_UPPER) : array();
         $apikey = $_SERVER['HTTP_DOLAPIKEY'] ?? ($headers['DOLAPIKEY'] ?? '');
 
@@ -32,8 +36,11 @@ class McpAuth
             $conf->entity = $entity;
         }
 
+        // Comme DolibarrApiAccess : la cle peut etre stockee en clair ou chiffree (dolEncrypt).
+        $apikeyenc = dolEncrypt($apikey, '', '', 'dolibarr');
         $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."user";
-        $sql .= " WHERE api_key = '".$db->escape($apikey)."'";
+        $sql .= " WHERE (api_key = '".$db->escape($apikey)."'";
+        $sql .= " OR api_key = '".$db->escape($apikeyenc)."')";
         $sql .= " AND statut = 1";
         $sql .= " AND entity IN (0, ".((int) $conf->entity).")";
 

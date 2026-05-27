@@ -61,10 +61,11 @@ class modMcpServer extends DolibarrModules
         $this->rights[$r][5] = '';
         $r++;
 
-        // Menus / onglets / repertoires : aucun (acces via la page de config du module)
+        // Menus / onglets : aucun (acces via la page de config du module)
         $this->menu = array();
         $this->tabs = array();
-        $this->dirs = array();
+        // Repertoire data (sessions MCP) cree a l'activation et retire a la desactivation.
+        $this->dirs = array("/mcpserver/temp");
     }
 
     /**

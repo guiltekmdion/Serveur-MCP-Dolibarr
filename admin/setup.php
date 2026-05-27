@@ -6,11 +6,11 @@
 
 // Charger l'environnement Dolibarr (page HTML d'admin -> main.inc.php)
 $res = 0;
-if (!$res && file_exists("../../main.inc.php")) {
-    $res = include "../../main.inc.php";
+if (!$res && file_exists(dirname(__FILE__)."/../../main.inc.php")) {
+    $res = include dirname(__FILE__)."/../../main.inc.php";
 }
-if (!$res && file_exists("../../../main.inc.php")) {
-    $res = include "../../../main.inc.php";
+if (!$res && file_exists(dirname(__FILE__)."/../../../main.inc.php")) {
+    $res = include dirname(__FILE__)."/../../../main.inc.php";
 }
 if (!$res) {
     die("Include of main fails");

@@ -8,12 +8,17 @@ require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 
 /**
  * Outils MCP pour les tiers (Societe). Patron de reference pour les autres domaines.
- * Chaque methode s'execute sous $user et verifie le droit Dolibarr natif.
+ * Chaque methode s'execute sous $user, verifie le droit Dolibarr natif et l'isolation
+ * multi-entite, exactement comme l'API REST native.
  */
 class ThirdPartyTools
 {
     /**
      * Verifie un droit natif Dolibarr ou leve une exception (mappee en erreur MCP).
+     *
+     * @param string $module Module (ex: 'societe')
+     * @param string $perm   Permission (ex: 'lire')
+     * @return void
      */
     private function requireRight(string $module, string $perm): void
     {
@@ -21,6 +26,40 @@ class ThirdPartyTools
         if (empty($user->hasRight($module, $perm))) {
             throw new \RuntimeException(sprintf('Permission refusee: %s->%s', $module, $perm));
         }
+    }
+
+    /**
+     * Verifie que l'objet charge est accessible dans l'entite courante et,
+     * pour un utilisateur externe, qu'il correspond bien a son tiers.
+     *
+     * @param \Societe $obj Tiers charge
+     * @return void
+     */
+    private function assertAccess(\Societe $obj): void
+    {
+        global $user;
+        $allowed = array_map('intval', explode(',', getEntity('societe')));
+        if (!in_array((int) $obj->entity, $allowed, true)) {
+            throw new \RuntimeException('Tiers hors entite autorisee: '.((int) $obj->id));
+        }
+        if (!empty($user->socid) && (int) $obj->id !== (int) $user->socid) {
+            throw new \RuntimeException('Acces refuse a ce tiers');
+        }
+    }
+
+    /**
+     * Construit un message d'erreur a partir de $obj->error ou $obj->errors.
+     *
+     * @param \Societe $obj Tiers
+     * @return string Message d'erreur non vide si possible
+     */
+    private function errMsg(\Societe $obj): string
+    {
+        $msg = $obj->error;
+        if (empty($msg) && !empty($obj->errors)) {
+            $msg = implode(', ', (array) $obj->errors);
+        }
+        return $msg !== '' ? $msg : 'erreur inconnue';
     }
 
     /**
@@ -36,7 +75,7 @@ class ThirdPartyTools
         global $db, $user;
         $this->requireRight('societe', 'lire');
 
-        $sql = "SELECT rowid, nom, code_client, code_fournisseur, email, phone, town";
+        $sql = "SELECT rowid, nom, code_client, code_fournisseur, email, phone, town, status";
         $sql .= " FROM ".MAIN_DB_PREFIX."societe";
         $sql .= " WHERE entity IN (".getEntity('societe').")";
         if (!empty($user->socid)) {
@@ -59,6 +98,7 @@ class ThirdPartyTools
                 'email' => $obj->email,
                 'phone' => $obj->phone,
                 'town' => $obj->town,
+                'status' => (int) $obj->status,
             );
         }
         return array('count' => count($rows), 'rows' => $rows);
@@ -80,6 +120,8 @@ class ThirdPartyTools
         if ($obj->fetch($id) <= 0) {
             throw new \RuntimeException('Tiers introuvable: '.$id);
         }
+        $this->assertAccess($obj);
+
         return array(
             'id' => (int) $obj->id,
             'name' => $obj->name,
@@ -91,15 +133,16 @@ class ThirdPartyTools
             'zip' => $obj->zip,
             'town' => $obj->town,
             'vat_number' => $obj->tva_intra,
+            'status' => (int) $obj->status,
         );
     }
 
     /**
      * Cree un tiers.
      *
-     * @param string      $name  Nom du tiers
-     * @param string|null $email Email
-     * @param int         $client 1=client, 2=prospect, 3=client/prospect, 0=non
+     * @param string      $name        Nom du tiers
+     * @param string|null $email       Email
+     * @param int         $client      1=client, 2=prospect, 3=client/prospect, 0=non
      * @param int         $fournisseur 1=fournisseur, 0=non
      * @return array Identifiant cree
      */
@@ -124,7 +167,7 @@ class ThirdPartyTools
 
         $id = $obj->create($user);
         if ($id <= 0) {
-            throw new \RuntimeException('Echec creation: '.$obj->error);
+            throw new \RuntimeException('Echec creation: '.$this->errMsg($obj));
         }
         return array('id' => (int) $id);
     }
@@ -147,6 +190,8 @@ class ThirdPartyTools
         if ($obj->fetch($id) <= 0) {
             throw new \RuntimeException('Tiers introuvable: '.$id);
         }
+        $this->assertAccess($obj);
+
         if ($name !== null) {
             $obj->name = $name;
         }
@@ -154,7 +199,7 @@ class ThirdPartyTools
             $obj->email = $email;
         }
         if ($obj->update($id, $user) <= 0) {
-            throw new \RuntimeException('Echec mise a jour: '.$obj->error);
+            throw new \RuntimeException('Echec mise a jour: '.$this->errMsg($obj));
         }
         return array('id' => (int) $id, 'updated' => true);
     }
@@ -175,8 +220,10 @@ class ThirdPartyTools
         if ($obj->fetch($id) <= 0) {
             throw new \RuntimeException('Tiers introuvable: '.$id);
         }
+        $this->assertAccess($obj);
+
         if ($obj->delete($id, $user) <= 0) {
-            throw new \RuntimeException('Echec suppression: '.$obj->error);
+            throw new \RuntimeException('Echec suppression: '.$this->errMsg($obj));
         }
         return array('id' => (int) $id, 'deleted' => true);
     }

@@ -61,14 +61,20 @@ $user = McpAuth::authenticate($db);
 $GLOBALS['user'] = $user;
 
 // --- Stockage de session MCP (persistant entre requetes HTTP) ---
-$sessdir = DOL_DATA_ROOT.'/mcpserver/sessions';
+// Sous le repertoire data declare dans le descripteur (retire a la desinstallation).
+$sessdir = DOL_DATA_ROOT.'/mcpserver/temp/sessions';
 dol_mkdir($sessdir);
+$sessionStore = new FileSessionStore($sessdir);
+// Nettoyage probabiliste des sessions expirees (pas de GC PHP natif sur cet endpoint).
+if (random_int(1, 100) <= 5 && method_exists($sessionStore, 'gc')) {
+    $sessionStore->gc();
+}
 
 // --- Construction du serveur MCP (decouverte des outils annotes) ---
 $server = Server::builder()
     ->setServerInfo('Dolibarr MCP', '1.0.0', 'Acces MCP natif aux donnees Dolibarr')
     ->setDiscovery(__DIR__, array('Tools'))
-    ->setSession(new FileSessionStore($sessdir))
+    ->setSession($sessionStore)
     ->build();
 
 // --- Transport Streamable HTTP a partir des superglobales ---
