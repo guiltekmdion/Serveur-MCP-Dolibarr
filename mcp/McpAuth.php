@@ -45,10 +45,14 @@ class McpAuth
         $sql .= " AND entity IN (0, ".((int) $conf->entity).")";
 
         $resql = $db->query($sql);
-        if (!$resql || $db->num_rows($resql) == 0) {
+        if (!$resql || $resql === true) {
             self::fail(403, 'Invalid API key');
         }
         $obj = $db->fetch_object($resql);
+        if (!$obj) {
+            self::fail(403, 'Invalid API key');
+        }
+        /** @var object{rowid: int} $obj */
 
         $user = new \User($db);
         if ($user->fetch($obj->rowid) <= 0) {
@@ -70,7 +74,7 @@ class McpAuth
      * @param string $message Message
      * @return never
      */
-    private static function fail(int $code, string $message): void
+    private static function fail(int $code, string $message): never
     {
         http_response_code($code);
         header('Content-Type: application/json');

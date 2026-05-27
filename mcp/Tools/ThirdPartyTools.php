@@ -67,7 +67,7 @@ class ThirdPartyTools
      *
      * @param int $limit  Nombre maximum de resultats
      * @param int $offset Decalage de pagination
-     * @return array Liste des tiers
+     * @return array<string, mixed> Liste des tiers
      */
     #[McpTool(name: 'thirdparty_list', description: 'Lister les tiers Dolibarr (clients, prospects, fournisseurs).')]
     public function list(int $limit = 25, int $offset = 0): array
@@ -108,7 +108,7 @@ class ThirdPartyTools
      * Recupere un tiers par son identifiant.
      *
      * @param int $id Identifiant du tiers
-     * @return array Donnees du tiers
+     * @return array<string, mixed> Donnees du tiers
      */
     #[McpTool(name: 'thirdparty_get', description: 'Recuperer un tiers Dolibarr par son id.')]
     public function get(int $id): array
@@ -144,7 +144,7 @@ class ThirdPartyTools
      * @param string|null $email       Email
      * @param int         $client      1=client, 2=prospect, 3=client/prospect, 0=non
      * @param int         $fournisseur 1=fournisseur, 0=non
-     * @return array Identifiant cree
+     * @return array<string, mixed> Identifiant cree
      */
     #[McpTool(name: 'thirdparty_create', description: 'Creer un tiers Dolibarr.')]
     public function create(string $name, ?string $email = null, int $client = 1, int $fournisseur = 0): array
@@ -154,15 +154,15 @@ class ThirdPartyTools
 
         $obj = new \Societe($db);
         $obj->name = $name;
-        $obj->email = $email;
+        $obj->email = (string) $email;
         $obj->client = $client;
         $obj->fournisseur = $fournisseur;
         // Demande l'auto-generation des codes (sinon ErrorCustomerCodeRequired selon la config).
         if ($client > 0) {
-            $obj->code_client = -1;
+            $obj->code_client = '-1';
         }
         if ($fournisseur > 0) {
-            $obj->code_fournisseur = -1;
+            $obj->code_fournisseur = '-1';
         }
 
         $id = $obj->create($user);
@@ -178,7 +178,7 @@ class ThirdPartyTools
      * @param int         $id    Identifiant du tiers
      * @param string|null $name  Nouveau nom (optionnel)
      * @param string|null $email Nouvel email (optionnel)
-     * @return array Statut
+     * @return array<string, mixed> Statut
      */
     #[McpTool(name: 'thirdparty_update', description: 'Mettre a jour un tiers Dolibarr.')]
     public function update(int $id, ?string $name = null, ?string $email = null): array
@@ -208,7 +208,7 @@ class ThirdPartyTools
      * Supprime un tiers.
      *
      * @param int $id Identifiant du tiers
-     * @return array Statut
+     * @return array<string, mixed> Statut
      */
     #[McpTool(name: 'thirdparty_delete', description: 'Supprimer un tiers Dolibarr.')]
     public function delete(int $id): array

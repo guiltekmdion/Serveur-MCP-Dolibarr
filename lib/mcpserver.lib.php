@@ -7,7 +7,7 @@
 /**
  * Prepare l'entete des onglets de configuration.
  *
- * @return array Tableau d'onglets
+ * @return array<int, array<int<0, 5>, string>> Tableau d'onglets
  */
 function mcpserverAdminPrepareHead()
 {

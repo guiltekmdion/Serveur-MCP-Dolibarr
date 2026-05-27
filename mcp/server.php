@@ -32,7 +32,7 @@ if (!defined('NOREQUIRESOC')) {
 }
 
 $res = 0;
-if (!$res && file_exists(__DIR__."/../../../master.inc.php")) {
+if (file_exists(__DIR__."/../../../master.inc.php")) {
     $res = include __DIR__."/../../../master.inc.php";
 }
 if (!$res && file_exists(__DIR__."/../../../../master.inc.php")) {
@@ -44,6 +44,8 @@ if (!$res) {
     echo json_encode(array('error' => 'Dolibarr bootstrap failed'));
     exit;
 }
+
+global $conf, $db, $langs, $user, $hookmanager, $mysoc;
 
 // --- Autoload Composer (SDK + PSR-7 + tools) ---
 require_once __DIR__.'/../vendor/autoload.php';
@@ -66,7 +68,7 @@ $sessdir = DOL_DATA_ROOT.'/mcpserver/temp/sessions';
 dol_mkdir($sessdir);
 $sessionStore = new FileSessionStore($sessdir);
 // Nettoyage probabiliste des sessions expirees (pas de GC PHP natif sur cet endpoint).
-if (random_int(1, 100) <= 5 && method_exists($sessionStore, 'gc')) {
+if (random_int(1, 100) <= 5) {
     $sessionStore->gc();
 }
 

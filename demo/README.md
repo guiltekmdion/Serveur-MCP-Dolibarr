@@ -24,6 +24,18 @@ docker compose logs -f dolibarr             # Ctrl-C quand "MCP demo pret" appar
 
 Affiche le handshake MCP puis la liste des tiers issus des données de démo Dolibarr.
 
+## Analyse statique (PHPStan niveau 9)
+
+PHPStan s'exécute dans le conteneur Dolibarr (les sources Dolibarr servent à résoudre
+les classes/fonctions du cœur via `scanDirectories`) :
+
+```bash
+docker compose exec -w /var/www/html/custom/mcpserver dolibarr \
+  php -d memory_limit=1G vendor/bin/phpstan analyse -c phpstan.neon.dist --no-progress
+```
+
+Résultat attendu : `[OK] No errors`.
+
 ## Arrêt / nettoyage
 
 ```bash

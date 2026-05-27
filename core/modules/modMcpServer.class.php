@@ -23,7 +23,7 @@ class modMcpServer extends DolibarrModules
         $this->rights_class = 'mcpserver';
         $this->family = "interface";
         $this->module_position = '90';
-        $this->name = preg_replace('/^mod/i', '', get_class($this));
+        $this->name = (string) preg_replace('/^mod/i', '', get_class($this));
         $this->description = "Serveur MCP natif pour Dolibarr (SDK MCP PHP officiel)";
         $this->descriptionlong = "Expose les donnees Dolibarr aux agents IA via le Model Context Protocol, en reutilisant les cles API (DOLAPIKEY) et les droits natifs.";
         $this->version = '1.0.0';
@@ -72,7 +72,7 @@ class modMcpServer extends DolibarrModules
      * Activation : insere constantes, permissions, etc. declares ci-dessus.
      *
      * @param string $options Options
-     * @return int <0 si KO, >0 si OK
+     * @return int Negatif si KO, positif si OK
      */
     public function init($options = '')
     {
@@ -83,7 +83,7 @@ class modMcpServer extends DolibarrModules
      * Desactivation : retire tout ce que init() a cree.
      *
      * @param string $options Options
-     * @return int <0 si KO, >0 si OK
+     * @return int Negatif si KO, positif si OK
      */
     public function remove($options = '')
     {
