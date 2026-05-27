@@ -17,19 +17,25 @@ les credentials séparés, et réutilisant le bootstrap, l'authentification et l
 de Dolibarr.
 
 Cette spec couvre **deux livrables** : (1) le nettoyage de la branche pour ne garder que la
-connaissance documentaire de l'API Dolibarr, et (2) le **squelette** du module PHP. L'implémentation
-complète du catalogue d'outils est un travail ultérieur, guidé par les docs conservées.
+connaissance documentaire de l'API Dolibarr, et (2) un module PHP **complet et propre** au sens
+du cycle de vie Dolibarr — installation, désinstallation, et modèle de droits parfaitement gérés —
+livré avec le **domaine « tiers » comme patron d'outils de référence**. Les autres domaines d'outils
+(factures, commandes, stocks…) s'ajoutent ensuite de façon incrémentale en réutilisant ce patron.
 
 ## Objectifs
 
 - Repartir d'une branche propre, sans code TypeScript ni infra Node.
 - Préserver la connaissance accumulée sur l'API Dolibarr (références, exploration, standards, cas d'usage).
-- Poser un squelette de module Dolibarr conforme aux conventions (modulebuilder), avec le serveur
-  MCP opérationnel sur **un outil d'exemple** via transport **Streamable HTTP**.
+- Livrer un module Dolibarr conforme aux conventions (modulebuilder), **installable et
+  désinstallable proprement** (aucun résidu : droits, constantes, menus retirés à la désactivation).
+- Modèle de droits **parfait** : accès au MCP contrôlé par utilisateur (case à cocher = droit module),
+  et chaque opération soumise aux **droits API natifs** de Dolibarr (§7).
+- Serveur MCP opérationnel via **Streamable HTTP**, avec le **domaine tiers** complet comme référence.
 
 ## Non-objectifs
 
-- Implémenter l'intégralité des outils (factures, commandes, stocks, tickets…) — étape ultérieure.
+- Implémenter dès maintenant tous les domaines d'outils (factures, commandes, stocks, tickets…) —
+  ajout incrémental ultérieur sur le patron du domaine tiers.
 - Migrer/garder l'ancien mécanisme de webhooks Node.
 - Packaging Dolibarr (zip module store) / CI — à traiter plus tard.
 
@@ -85,8 +91,9 @@ composer.json                         # require: mcp/sdk + nyholm/psr7 (PSR-7/17
 README.md                             # documentation du module
 ```
 
-Droit unique au départ : `mcpserver -> use` (« Utiliser le serveur MCP »), vérifié à l'auth (§4.2).
-Le `numero` du module sera choisi dans une plage non réservée à l'implémentation.
+Modèle de droits : voir §7. Le `numero` du module sera choisi dans une plage non réservée
+à l'implémentation. Tout ce qui est créé à l'activation (droit, constantes, menus, onglets) est
+déclaré dans le descripteur pour être retiré automatiquement à la désactivation (§8).
 
 ## 4. Transport & flux d'exécution (Streamable HTTP)
 
@@ -120,10 +127,12 @@ Dolibarr (clé par utilisateur, gérée par les admins dans la fiche utilisateur
 2. Résoudre l'entité via l'en-tête optionnel `DOLAPIENTITY` (multi-entité), sinon entité par défaut.
 3. `SELECT rowid FROM llx_user WHERE api_key = <clé> AND statut = 1` ; refus **403** si aucune ligne.
 4. Charger `$user = new User($db); $user->fetch($rowid); $user->loadRights();`.
-5. Vérifier la permission du module (`$user->hasRight('mcpserver', 'use')`) ; refus **403** sinon.
+5. Vérifier le droit d'accès MCP (`$user->hasRight('mcpserver', 'use')`, la « case à cocher »
+   par utilisateur — voir §7) ; refus **403** sinon.
 
-Ce flux reproduit la logique de `DolibarrApiAccess` du module REST natif, donc comportement et
-gestion des droits cohérents avec l'API officielle.
+L'auth ne fait qu'ouvrir l'accès au serveur. **Chaque outil applique ensuite les droits API natifs**
+de l'objet manipulé (§7). Ce flux reproduit la logique de `DolibarrApiAccess` du module REST natif :
+mêmes clés API, mêmes permissions, comportement cohérent avec l'API officielle.
 
 ### 4.3 Flux de service
 
@@ -135,30 +144,93 @@ gestion des droits cohérents avec l'API officielle.
 4. Chaque outil appelle directement les classes métier Dolibarr (`Societe`, `Facture`, …) sous
    l'identité `$user` ; aucune couche REST intermédiaire ni credentials externes.
 
-## 5. Portée du squelette (cette étape)
+## 5. Portée de cette étape (module complet + domaine tiers)
 
 Inclus :
 
-- `modMcpServer.class.php` fonctionnel (le module s'active dans Dolibarr ; droit `use`).
-- `admin/setup.php` + `lib/mcpserver.lib.php` (page de config minimale).
+- `modMcpServer.class.php` **complet** : descripteur conforme (numero, famille, version, droit `use`,
+  page de config, menu admin, constantes), avec `init()`/`remove()` reposant sur le cycle de vie
+  natif (§8) → activation/désactivation/suppression sans résidu.
+- `admin/setup.php` + `lib/mcpserver.lib.php` : page de config (statut endpoint, URL, rappel
+  génération `DOLAPIKEY`, lien vers les permissions).
 - `langs/{en_US,fr_FR}/mcpserver.lang`.
 - `composer.json` (`require: mcp/sdk`, `nyholm/psr7`).
-- `mcp/server.php` opérationnel (bootstrap headless + auth `DOLAPIKEY` + StreamableHttpTransport).
-- **Un outil d'exemple** `mcp/Tools/ThirdPartyTools.php` avec deux méthodes `#[McpTool]` :
-  `thirdparty_list` (liste paginée via `Societe`) et `thirdparty_get` (lecture par id), exécutées
-  sous `$user`.
+- `mcp/server.php` opérationnel (bootstrap headless + auth `DOLAPIKEY` + droit `use` +
+  StreamableHttpTransport).
+- **Domaine tiers de référence** `mcp/Tools/ThirdPartyTools.php` — patron complet à reproduire pour
+  les autres domaines, couvrant lecture **et** écriture pour démontrer le contrôle de droits (§7) :
+  - `thirdparty_list` / `thirdparty_get` → garde `societe->lire`
+  - `thirdparty_create` / `thirdparty_update` → garde `societe->creer`
+  - `thirdparty_delete` → garde `societe->supprimer`
+  Chaque méthode `#[McpTool]` s'exécute sous `$user` et vérifie le droit natif avant l'opération.
 - `README.md` du module (installation dans `htdocs/custom/`, `composer install`, activation, génération
-  de la clé `DOLAPIKEY`, config d'un client MCP vers l'endpoint Streamable HTTP).
+  de la clé `DOLAPIKEY`, attribution du droit MCP, config d'un client MCP vers l'endpoint Streamable HTTP).
 
-Exclu (travail ultérieur) : catalogue complet des outils, tests, packaging/CI.
+Exclu (ajout incrémental ultérieur sur le patron tiers) : les autres domaines d'outils, tests, packaging/CI.
 
 ## 6. Critères de réussite
 
 - La branche `rewrite/php-module` ne contient plus de code TS/Node ; seules les docs listées en §2 subsistent.
 - L'arborescence du module §3 existe et tous les `.php` passent `php -l` (lint).
 - `composer.json` déclare `mcp/sdk` + `nyholm/psr7` ; `mcp/server.php` fait le bootstrap headless,
-  l'auth `DOLAPIKEY`, instancie le serveur et expose l'outil d'exemple en Streamable HTTP.
-- Le README explique l'installation, la génération de la clé `DOLAPIKEY` et le branchement d'un client MCP.
+  l'auth `DOLAPIKEY` + le droit `use`, instancie le serveur et expose le domaine tiers en Streamable HTTP.
+- **Cycle de vie propre** : à l'activation le droit/constantes/menus sont créés ; à la désactivation
+  ils sont retirés ; aucune table ni constante orpheline ne subsiste après suppression (§8).
+- **Droits** : sans droit `mcpserver->use` l'accès est refusé (403) ; un appel d'écriture sans le
+  droit natif correspondant (ex. `societe->creer`) est refusé même si `use` est accordé.
+- Le README explique l'installation, la génération de la clé `DOLAPIKEY`, l'attribution du droit MCP
+  et le branchement d'un client MCP.
+
+## 7. Modèle de droits (parfait, basé sur les droits API)
+
+Deux niveaux, sans permission redondante propre au module :
+
+**Niveau 1 — Accès au serveur MCP (case à cocher par utilisateur).**
+Le module déclare **un seul droit** `mcpserver->use` (« Accéder au serveur MCP / Utiliser l'API MCP »).
+C'est une permission Dolibarr standard : elle apparaît dans l'onglet *Permissions* de chaque
+utilisateur/groupe, donc l'admin **coche/décoche** qui a le droit d'utiliser le MCP. Vérifiée à
+l'authentification (§4.2, étape 5). Décochée ⇒ 403, même avec une `DOLAPIKEY` valide.
+
+**Niveau 2 — Droits API natifs par opération.**
+Au-delà de l'accès, **aucune action n'échappe aux permissions Dolibarr existantes** — exactement
+celles qu'utilise l'API REST. Chaque outil, avant d'agir, vérifie le droit natif de l'objet :
+
+| Opération outil | Droit natif vérifié |
+|---|---|
+| lecture (`*_list`, `*_get`) | `societe->lire`, `facture->lire`, … |
+| création/modification (`*_create`, `*_update`) | `societe->creer`, `facture->creer`, … |
+| suppression (`*_delete`) | `societe->supprimer`, `facture->supprimer`, … |
+
+Le contrôle se fait via `$user->hasRight('societe', 'lire')` (etc.) en début de méthode ; refus =
+erreur MCP « permission refusée » (mappée 403). Comme l'outil s'exécute sous le `$user` résolu depuis
+la clé API, **les droits effectifs d'un utilisateur via MCP sont identiques à ses droits via l'API REST
+ou l'interface web**. Un admin ne configure donc rien de nouveau : il réutilise les droits qu'il gère déjà.
+
+## 8. Cycle de vie : installation & désinstallation propres
+
+S'appuie sur le mécanisme natif `DolibarrModules` : tout ce qui est déclaré dans le descripteur est
+créé par `init()` à l'activation et retiré par `remove()` à la désactivation/suppression. **Règle :
+ne rien créer hors de ce qui est déclaré**, pour garantir un retrait intégral.
+
+**Déclaré dans `modMcpServer.class.php` (donc auto-créé puis auto-supprimé) :**
+
+- `$this->rights` → le droit `mcpserver->use` (inséré dans `llx_rights_def`, retiré à la désactivation).
+- `$this->const` → toute constante de config du module (ex. activation endpoint), retirée à la désactivation.
+- `$this->menu` / `$this->tabs` → entrée(s) d'admin, retirées à la désactivation.
+- `$this->module_parts` → déclarations (css/hooks le cas échéant), nettoyées automatiquement.
+
+**SQL :** le squelette n'introduit **aucune table** (`sql/` vide) → rien à *drop*, donc aucune donnée
+ni table orpheline après suppression. Si un futur besoin de table apparaît, prévoir explicitement le
+script de suppression, car Dolibarr ne *drop* pas les tables automatiquement (préservation des données).
+
+**Distinction désactiver / supprimer :**
+
+- *Désactiver* (`remove()`) : retire droits, constantes, menus, onglets ; le code reste sur le disque.
+- *Supprimer* : effacer le dossier `htdocs/custom/mcpserver/` (code + `vendor/`). Comme aucune table
+  n'est créée, il ne reste **aucun résidu** en base.
+
+**Vérification (critère §6) :** activer → constatation du droit/menu ; désactiver → disparition du droit
+et de la constante (contrôle en base `llx_rights_def` / `llx_const`) ; réactiver → tout revient.
 
 ## Références
 
