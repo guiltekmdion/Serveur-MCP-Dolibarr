@@ -72,55 +72,93 @@ Layout : **la racine du dépôt = le contenu du module**, clonable directement d
 `htdocs/custom/mcpserver/`, conforme aux conventions Dolibarr (modulebuilder).
 
 ```
-core/modules/modMcpServer.class.php   # descripteur (extends DolibarrModules) : numéro, nom,
-                                       #   description, droits/permissions, page de config
-admin/setup.php                       # page de configuration : activer l'API, gérer token/permissions
-lib/mcpserver.lib.php                 # helpers (préparation des onglets admin)
-mcp/server.php                        # endpoint HTTP : bootstrap Dolibarr + StreamableHttpTransport
+core/modules/modMcpServer.class.php   # descripteur (extends DolibarrModules) : numero, nom,
+                                       #   description, droit 'use', page de config (setup.php@mcpserver)
+admin/setup.php                       # page de configuration : statut endpoint + URL + rappel DOLAPIKEY
+lib/mcpserver.lib.php                 # helpers (mcpserverAdminPrepareHead : onglets admin)
+mcp/server.php                        # endpoint HTTP : bootstrap headless Dolibarr + StreamableHttpTransport
 mcp/Tools/                            # classes de capacités annotées #[McpTool] (ex. ThirdPartyTools)
 langs/en_US/mcpserver.lang            # traductions anglaises
 langs/fr_FR/mcpserver.lang            # traductions françaises
 sql/                                  # vide au départ (aucune table requise par le squelette)
-composer.json                         # require: mcp/sdk (PHP >= 8.1)
+composer.json                         # require: mcp/sdk + nyholm/psr7 (PSR-7/17 pour le transport HTTP) ; PHP >= 8.1
 README.md                             # documentation du module
 ```
+
+Droit unique au départ : `mcpserver -> use` (« Utiliser le serveur MCP »), vérifié à l'auth (§4.2).
+Le `numero` du module sera choisi dans une plage non réservée à l'implémentation.
 
 ## 4. Transport & flux d'exécution (Streamable HTTP)
 
 Le SDK officiel supporte `StdioTransport` et `StreamableHttpTransport`. Pour un module web natif,
 le **Streamable HTTP** est le choix idiomatique recommandé.
 
-Flux de `mcp/server.php` :
+### 4.1 Bootstrap (décision figée)
 
-1. Inclut `main.inc.php` de Dolibarr → bootstrap (accès `$db`, `$conf`, `$user`, classes métier).
-2. Authentifie l'appel MCP (token dédié au module ou `DOLAPIKEY`) et résout l'utilisateur Dolibarr ;
-   refuse en 401/403 sinon.
-3. Construit le serveur : `Server::builder()->setServerInfo('Dolibarr MCP', <version>)`
-   → enregistre/découvre les classes de `mcp/Tools/` → `build()`.
-4. Sert la requête via `StreamableHttpTransport` (pont PSR-7 : request + responseFactory + streamFactory).
-5. Chaque outil appelle directement les classes Dolibarr (`Societe`, `Facture`, …) sous l'identité
-   `$user` ; pas de couche REST intermédiaire ni de credentials externes.
+`mcp/server.php` **n'utilise pas `main.inc.php`** (réservé aux pages HTML : session, menus, jetons
+CSRF, thème). Il reproduit le bootstrap *headless* de `api/index.php` : définir les constantes
+puis inclure `master.inc.php` (chargement bas niveau de `$conf` et `$db`, sans flux de login HTML).
+
+```php
+if (!defined('NOCSRFCHECK'))    define('NOCSRFCHECK', '1');
+if (!defined('NOTOKENRENEWAL')) define('NOTOKENRENEWAL', '1');
+if (!defined('NOREQUIREMENU'))  define('NOREQUIREMENU', '1');
+if (!defined('NOREQUIREHTML'))  define('NOREQUIREHTML', '1');
+if (!defined('NOREQUIREAJAX'))  define('NOREQUIREAJAX', '1');
+if (!defined('NOREQUIRESOC'))   define('NOREQUIRESOC', '1');
+require __DIR__.'/../../../main.inc.php'; // = htdocs/master.inc.php via le chemin custom
+```
+> Le chemin exact vers `master.inc.php` (selon l'emplacement `htdocs/custom/mcpserver/mcp/`)
+> sera résolu à l'implémentation en s'alignant sur la façon dont `api/index.php` le calcule.
+
+### 4.2 Authentification (décision figée : réutiliser `DOLAPIKEY`)
+
+Pas de système de token propre au module. On réutilise l'infrastructure de clés API existante de
+Dolibarr (clé par utilisateur, gérée par les admins dans la fiche utilisateur) :
+
+1. Lire l'en-tête HTTP `DOLAPIKEY` (refus **401** si absent).
+2. Résoudre l'entité via l'en-tête optionnel `DOLAPIENTITY` (multi-entité), sinon entité par défaut.
+3. `SELECT rowid FROM llx_user WHERE api_key = <clé> AND statut = 1` ; refus **403** si aucune ligne.
+4. Charger `$user = new User($db); $user->fetch($rowid); $user->loadRights();`.
+5. Vérifier la permission du module (`$user->hasRight('mcpserver', 'use')`) ; refus **403** sinon.
+
+Ce flux reproduit la logique de `DolibarrApiAccess` du module REST natif, donc comportement et
+gestion des droits cohérents avec l'API officielle.
+
+### 4.3 Flux de service
+
+1. Bootstrap (§4.1) + authentification (§4.2) → `$user` résolu et autorisé.
+2. Construire le serveur : `Server::builder()->setServerInfo('Dolibarr MCP', <version>)`
+   → découverte/enregistrement des classes de `mcp/Tools/` → `build()`.
+3. Construire la requête PSR-7 depuis les superglobales et servir via `StreamableHttpTransport`
+   (PSR-7 request + PSR-17 responseFactory + streamFactory, fournis par `nyholm/psr7`).
+4. Chaque outil appelle directement les classes métier Dolibarr (`Societe`, `Facture`, …) sous
+   l'identité `$user` ; aucune couche REST intermédiaire ni credentials externes.
 
 ## 5. Portée du squelette (cette étape)
 
 Inclus :
 
-- `modMcpServer.class.php` fonctionnel (le module s'active dans Dolibarr).
+- `modMcpServer.class.php` fonctionnel (le module s'active dans Dolibarr ; droit `use`).
 - `admin/setup.php` + `lib/mcpserver.lib.php` (page de config minimale).
 - `langs/{en_US,fr_FR}/mcpserver.lang`.
-- `composer.json` (`require: mcp/sdk`).
-- `mcp/server.php` opérationnel + **un outil d'exemple** (lister/lire un tiers `Societe`)
-  dans `mcp/Tools/`, câblé en Streamable HTTP.
-- `README.md` du module (installation dans `htdocs/custom/`, `composer install`, activation, config client MCP).
+- `composer.json` (`require: mcp/sdk`, `nyholm/psr7`).
+- `mcp/server.php` opérationnel (bootstrap headless + auth `DOLAPIKEY` + StreamableHttpTransport).
+- **Un outil d'exemple** `mcp/Tools/ThirdPartyTools.php` avec deux méthodes `#[McpTool]` :
+  `thirdparty_list` (liste paginée via `Societe`) et `thirdparty_get` (lecture par id), exécutées
+  sous `$user`.
+- `README.md` du module (installation dans `htdocs/custom/`, `composer install`, activation, génération
+  de la clé `DOLAPIKEY`, config d'un client MCP vers l'endpoint Streamable HTTP).
 
 Exclu (travail ultérieur) : catalogue complet des outils, tests, packaging/CI.
 
 ## 6. Critères de réussite
 
 - La branche `rewrite/php-module` ne contient plus de code TS/Node ; seules les docs listées en §2 subsistent.
-- L'arborescence du module §3 existe et le descripteur est syntaxiquement valide (PHP lint).
-- `composer.json` déclare `mcp/sdk` ; `mcp/server.php` instancie le serveur et un outil d'exemple.
-- Le README explique l'installation et le branchement d'un client MCP.
+- L'arborescence du module §3 existe et tous les `.php` passent `php -l` (lint).
+- `composer.json` déclare `mcp/sdk` + `nyholm/psr7` ; `mcp/server.php` fait le bootstrap headless,
+  l'auth `DOLAPIKEY`, instancie le serveur et expose l'outil d'exemple en Streamable HTTP.
+- Le README explique l'installation, la génération de la clé `DOLAPIKEY` et le branchement d'un client MCP.
 
 ## Références
 
@@ -128,3 +166,4 @@ Exclu (travail ultérieur) : catalogue complet des outils, tests, packaging/CI.
 - [modelcontextprotocol/php-sdk](https://github.com/modelcontextprotocol/php-sdk)
 - [mcp/sdk — Packagist](https://packagist.org/packages/mcp/sdk)
 - [Dolibarr — Module development (wiki)](https://wiki.dolibarr.org/index.php/Module_development)
+- [Dolibarr — Module Web Services API REST (auth DOLAPIKEY, bootstrap)](https://wiki.dolibarr.org/index.php/Module_Web_Services_API_REST_(developer))
