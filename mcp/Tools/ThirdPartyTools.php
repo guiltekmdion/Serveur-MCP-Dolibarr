@@ -114,6 +114,13 @@ class ThirdPartyTools
         $obj->email = $email;
         $obj->client = $client;
         $obj->fournisseur = $fournisseur;
+        // Demande l'auto-generation des codes (sinon ErrorCustomerCodeRequired selon la config).
+        if ($client > 0) {
+            $obj->code_client = -1;
+        }
+        if ($fournisseur > 0) {
+            $obj->code_fournisseur = -1;
+        }
 
         $id = $obj->create($user);
         if ($id <= 0) {
