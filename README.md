@@ -1,381 +1,66 @@
-<div align="center">
+# Module MCP Server pour Dolibarr
 
-# 🚀 Serveur MCP Dolibarr
+Module Dolibarr natif exposant les données de l'ERP aux agents IA via le **Model Context
+Protocol**, à l'aide du [SDK MCP PHP officiel](https://github.com/modelcontextprotocol/php-sdk)
+(`mcp/sdk`). Il réutilise l'authentification par clé API (`DOLAPIKEY`) et les permissions
+natives de Dolibarr — aucun credential ni couche REST externe.
 
-### Connectez votre Dolibarr ERP/CRM à l'Intelligence Artificielle
+## Prérequis
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)](https://www.typescriptlang.org/)
-[![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05-purple)](https://modelcontextprotocol.io/)
+- Dolibarr 19+
+- PHP 8.1+
+- Composer
+- Module **API REST** (`modApi`) activé
 
-Un serveur MCP (Model Context Protocol) **robuste et prêt pour la production** qui permet aux agents IA comme Claude Desktop, ChatGPT et autres d'interagir avec votre instance Dolibarr de manière sécurisée via son API REST.
-
-[🚀 Démarrage Rapide](#-installation) • [📚 Documentation](#-documentation) • [🤝 Contribuer](#-contribuer) • [💬 Support](#-support)
-
-</div>
-
----
-
-## 🚀 Fonctionnalités
-
-- **Autonome** : Fonctionne indépendamment du code interne de Dolibarr. Utilise uniquement l'API REST.
-- **Stack Moderne** : Construit avec TypeScript et Node.js LTS.
-- **Standardisé** : Utilise le SDK officiel `@modelcontextprotocol/sdk`.
-- **Prêt pour Docker** : Inclut un Dockerfile optimisé et une configuration Compose.
-- **Sécurisé** : Configuration par variables d'environnement, aucun identifiant en dur.
-- **Enrichissement Automatique** : Complète automatiquement les données des entreprises françaises (SIREN, SIRET, NAF, RCS, Adresse) via l'API `api.gouv.fr` lors de la création si l'adresse est manquante.
-
-## 🛠 Outils Inclus
-
-Le serveur expose **212 outils MCP** couvrant toute l'API Dolibarr :
-
-### 📇 Tiers (Thirdparties)
-- `dolibarr_get_thirdparty` - `dolibarr_search_thirdparties`
-- `dolibarr_create_thirdparty` - `dolibarr_update_thirdparty`
-
-### 👤 Contacts
-- `dolibarr_get_contact` - `dolibarr_list_contacts_for_thirdparty`
-- `dolibarr_create_contact`
-
-### 📄 Propositions Commerciales
-- `dolibarr_get_proposal` - `dolibarr_list_proposals` - `dolibarr_create_proposal`
-- `dolibarr_add_proposal_line` - `dolibarr_update_proposal_line` - `dolibarr_delete_proposal_line`
-- `dolibarr_change_proposal_status`
-
-### 📦 Commandes
-- `dolibarr_get_order` - `dolibarr_create_order` - `dolibarr_change_order_status`
-
-### 💰 Factures
-- `dolibarr_get_invoice` - `dolibarr_list_invoices` - `dolibarr_create_invoice`
-- `dolibarr_create_invoice_from_proposal` - `dolibarr_record_invoice_payment`
-
-### 🏷️ Produits/Services
-- `dolibarr_get_product` - `dolibarr_search_products`
-
-### 📁 Documents
-- `dolibarr_list_documents_for_object` - `dolibarr_upload_document_for_object`
-
-### 📊 Projets & Tâches
-- `dolibarr_get_project` - `dolibarr_list_projects` - `dolibarr_create_project`
-- `dolibarr_get_task` - `dolibarr_create_task`
-
-### 👥 Utilisateurs
-- `dolibarr_get_user` - `dolibarr_list_users`
-
-### 🏦 Banques
-- `dolibarr_list_bank_accounts` - `dolibarr_get_bank_account_lines`
-
-### 🏭 Entrepôts (Warehouses) - NOUVEAU
-- `dolibarr_list_warehouses` - `dolibarr_get_warehouse`
-
-### 📦 Stock - NOUVEAU
-- `dolibarr_list_stock_movements` - `dolibarr_create_stock_movement`
-
-### 🚚 Expéditions - NOUVEAU
-- `dolibarr_list_shipments` - `dolibarr_get_shipment` - `dolibarr_create_shipment`
-
-### 📝 Contrats - NOUVEAU
-- `dolibarr_list_contracts` - `dolibarr_get_contract` - `dolibarr_create_contract`
-
-### 🎫 Tickets (Support) - NOUVEAU
-- `dolibarr_list_tickets` - `dolibarr_get_ticket` - `dolibarr_create_ticket`
-
-### 📅 Agenda - NOUVEAU
-- `dolibarr_list_agenda_events` - `dolibarr_get_agenda_event` - `dolibarr_create_agenda_event`
-
-### 💳 Notes de Frais - NOUVEAU
-
-- `dolibarr_list_expense_reports` - `dolibarr_get_expense_report` - `dolibarr_create_expense_report`
-
-### 🔧 Interventions (Fichinter) - NOUVEAU
-- `dolibarr_list_interventions` - `dolibarr_get_intervention` - `dolibarr_create_intervention`
-
-### 🔐 Droits & Permissions - NOUVEAU
-- `dolibarr_list_user_groups` - `dolibarr_create_user_group` - `dolibarr_add_user_to_group`
-- `dolibarr_set_user_rights` - `dolibarr_get_audit_logs`
-
-### 🌍 Multi-entités & Devises - NOUVEAU
-- `dolibarr_list_entities` - `dolibarr_create_entity`
-- `dolibarr_list_currencies` - `dolibarr_convert_currency`
-
-### 📅 Calendrier & Absences - NOUVEAU
-- `dolibarr_list_holidays` - `dolibarr_create_holiday` - `dolibarr_validate_holiday`
-- `dolibarr_create_resource_booking` - `dolibarr_list_resource_bookings`
-
-### 💳 Abonnements (Subscriptions) - NOUVEAU
-- `dolibarr_list_subscriptions` - `dolibarr_create_subscription`
-- `dolibarr_renew_subscription` - `dolibarr_cancel_subscription`
-
-### 📊 Analyse & Dashboard - NOUVEAU
-
-- `dolibarr_get_sales_stats` - `dolibarr_get_top_customers`
-- `dolibarr_get_global_status`
-
-[📚 Documentation complète des outils](./docs/03-tools.md)
-[🚀 Modules avancés détaillés](./docs/ADVANCED-MODULES.md)
-
-## 📋 Prérequis
-
-- Node.js >= 18
-- Une instance Dolibarr fonctionnelle (v10+)
-- Clé API Dolibarr (générée dans les paramètres utilisateur)
-
-## 📦 Installation
-
-### Développement Local
-
-1.  **Cloner le dépôt :**
-    ```bash
-    git clone https://github.com/votre-repo/serveur-mcp-dolibarr.git
-    cd serveur-mcp-dolibarr
-    ```
-
-2.  **Installer les dépendances :**
-    ```bash
-    npm install
-    ```
-
-3.  **Configurer l'environnement :**
-    Copiez `.env.example` vers `.env` et remplissez vos informations.
-    ```bash
-    cp .env.example .env
-    ```
-    Éditez `.env` :
-    ```env
-    DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php
-    DOLIBARR_API_KEY=votre_cle_api
-    LOG_LEVEL=info
-    ```
-
-4.  **Construire et Lancer :**
-    ```bash
-    npm run build
-    npm start
-    ```
-
-### Déploiement Docker
-
-1.  **Construire l'image :**
-    ```bash
-    docker build -t dolibarr-mcp .
-    ```
-
-2.  **Lancer avec Docker Compose :**
-    ```bash
-    docker-compose up -d
-    ```
-
-3.  **Lancer en interactif (mode STDIO) :**
-    ```bash
-    docker run -i --env-file .env dolibarr-mcp
-    ```
-
-## 🤖 Configuration pour Claude Desktop
-
-Ajoutez ce qui suit à votre `claude_desktop_config.json` :
-
-### Via Docker (Recommandé)
-
-```json
-{
-  "mcpServers": {
-    "dolibarr": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "-e", "DOLIBARR_BASE_URL=https://votre-dolibarr.com/api/index.php",
-        "-e", "DOLIBARR_API_KEY=votre_cle_api",
-        "dolibarr-mcp"
-      ]
-    }
-  }
-}
-```
-
-### Via Node.js Local
-
-```json
-{
-  "mcpServers": {
-    "dolibarr": {
-      "command": "node",
-      "args": [
-        "/chemin/absolu/vers/serveur-mcp-dolibarr/dist/server.js"
-      ],
-      "env": {
-        "DOLIBARR_BASE_URL": "https://votre-dolibarr.com/api/index.php",
-        "DOLIBARR_API_KEY": "votre_cle_api"
-      }
-    }
-  }
-}
-```
-
-## 🐛 Débogage
-
-Vous pouvez utiliser le [MCP Inspector](https://github.com/modelcontextprotocol/inspector) pour tester le serveur.
+## Installation
 
 ```bash
-npx @modelcontextprotocol/inspector node dist/server.js
+cd htdocs/custom
+git clone <repo> mcpserver
+cd mcpserver
+composer install --no-dev
 ```
 
-## 🏗 Structure du Projet
+Puis dans Dolibarr : **Accueil → Configuration → Modules** → activer **Serveur MCP**.
+
+## Configuration
+
+1. **Droit d'accès** : pour chaque utilisateur autorisé, cocher la permission
+   *« Accéder au serveur MCP »* (onglet *Permissions* de la fiche utilisateur ou du groupe).
+2. **Clé API** : générer une clé `DOLAPIKEY` dans la fiche de l'utilisateur (onglet utilisateur).
+3. **Activation de l'endpoint** : page de configuration du module (interrupteur *Activer l'endpoint MCP*).
+
+## Endpoint
 
 ```
-src/
-├── server.ts           # Point d'entrée du serveur MCP
-├── services/
-│   ├── dolibarr.ts     # Client API REST Dolibarr
-│   └── company-search.ts # Service d'enrichissement (api.gouv.fr)
-├── tools/              # Définitions des outils MCP
-│   ├── thirdparties.ts # Outils de gestion des tiers
-│   ├── proposals.ts    # Outils de gestion des propositions
-│   └── ...
-├── types/              # Définitions TypeScript et Schémas Zod
-└── utils/
-    └── config.ts       # Configuration de l'environnement
-docs/                   # Documentation détaillée
-extras/                 # Scripts et outils supplémentaires
-tests/                  # Tests unitaires
+https://<votre-dolibarr>/custom/mcpserver/mcp/server.php
 ```
 
-## 📚 Documentation
+Transport **Streamable HTTP**. En-têtes requis :
 
-<table>
-<tr>
-<td width="33%" valign="top">
+- `DOLAPIKEY: <clé de l'utilisateur>`
+- `DOLAPIENTITY: <id entité>` (optionnel, multi-société)
 
-### 🚀 Démarrage
-- [Installation](./docs/01-installation.md)
-- [Configuration](./docs/02-configuration.md)
-- [Démarrage Rapide](./docs/QUICKSTART.md)
-- [Déploiement Docker](./docs/04-docker.md)
+## Modèle de droits
 
-</td>
-<td width="33%" valign="top">
+- **Accès au serveur** : permission `mcpserver → use` (la case à cocher par utilisateur).
+- **Par opération** : chaque outil vérifie le droit Dolibarr natif de l'objet
+  (`societe → lire`, `societe → creer`, `societe → supprimer`, …). Les droits effectifs via MCP
+  sont donc identiques à ceux de l'utilisateur via l'API REST ou l'interface web.
 
-### 📖 Référence API
-- [**212 outils documentés**](./docs/API-REFERENCE.md)
-- [Liste des Outils MCP](./docs/03-tools.md)
-- [Exploration API](./docs/API_EXPLORATION.md)
+## Outils disponibles (domaine de référence : tiers)
 
-</td>
-<td width="33%" valign="top">
+| Outil | Droit requis |
+|---|---|
+| `thirdparty_list`, `thirdparty_get` | `societe → lire` |
+| `thirdparty_create`, `thirdparty_update` | `societe → creer` |
+| `thirdparty_delete` | `societe → supprimer` |
 
-### 🎯 Guides & Cas d'Usage
-- [50 Cas d'Usage](./docs/50-USE-CASES.md)
-- [Modules Avancés](./docs/ADVANCED-MODULES.md)
-- [Quick Start Avancé](./docs/QUICKSTART-ADVANCED.md)
+Les autres domaines (factures, commandes, stocks…) s'ajoutent en suivant le patron de
+`mcp/Tools/ThirdPartyTools.php`.
 
-</td>
-</tr>
-</table>
+## Désinstallation
 
-### 📝 Changelog & Compatibilité
-- [Changelog Complet](./CHANGELOG.md)
-- [Comparatif des Versions](./CHANGELOG-V2.md)
-- [Résumé Implémentation v2.0](./IMPLEMENTATION-SUMMARY.md)
-
-### 📝 Changelog & Compatibilité
-- [Changelog Complet](./CHANGELOG.md) • [Comparatif des Versions](./CHANGELOG-V2.md) • [Résumé v2.0](./IMPLEMENTATION-SUMMARY.md)
-- [Compatibilité API Dolibarr](./docs/COMPATIBILITY.md) • [Structure du Projet](./docs/PROJECT_STRUCTURE.md)
-
----
-
-## 🤝 Contribuer
-
-Nous accueillons chaleureusement toutes les contributions ! 💝
-
-<table>
-<tr>
-<td width="33%" align="center">
-
-### 🐛 Signaler un bug
-[Ouvrir une issue](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues/new)
-
-</td>
-<td width="33%" align="center">
-
-### 💡 Proposer une fonctionnalité
-[Suggérer une idée](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues/new)
-
-</td>
-<td width="33%" align="center">
-
-### 🔧 Contribuer au code
-[Guide de contribution](./CONTRIBUTING.md)
-
-</td>
-</tr>
-</table>
-
-### ⭐ Contributors
-
-Merci à toutes les personnes qui contribuent à ce projet !
-
-<!-- ALL-CONTRIBUTORS-LIST:START -->
-<!-- Utilisez https://allcontributors.org/ pour ajouter des contributeurs -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
-
-Vous souhaitez apparaître ici ? Consultez notre [Guide de contribution](./CONTRIBUTING.md) !
-
----
-
-## 💬 Support
-
-- 📖 [Documentation complète](./docs/INDEX.md)
-- 💬 [Discussions GitHub](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/discussions)
-- 🐛 [Issues GitHub](https://github.com/guiltekmdion/Serveur-MCP-Dolibarr/issues)
-- 📧 Contact : [Guiltek](https://guiltek.com)
-
----
-
-## 👥 Auteurs et Crédits
-
-<table>
-<tr>
-<td align="center">
-<img src="https://avatars.githubusercontent.com/u/114142370?v=4" width="100px;" alt="Maxime DION"/>
-<br />
-<sub><b>Maxime DION</b></sub>
-<br />
-<sub>Créateur & Mainteneur</sub>
-<br />
-<a href="https://guiltek.com">🌐 Guiltek</a>
-</td>
-<td>
-
-**Projet initié et développé par [Maxime DION](https://guiltek.com)**
-
-Ce serveur MCP a été créé pour faciliter l'intégration de Dolibarr avec les outils d'IA modernes. L'objectif est de rendre Dolibarr plus accessible et puissant grâce à l'intelligence artificielle.
-
-**Organisation** : [Guiltek](https://guiltek.com)
-
-</td>
-</tr>
-</table>
-
----
-
-## 📜 Licence
-
-MIT License - voir le fichier [LICENSE](./LICENSE) pour plus de détails.
-
-```
-Copyright (c) 2024 Maxime DION (Guiltek)
-```
-
----
-
-<div align="center">
-
-**⭐ Si ce projet vous est utile, n'hésitez pas à lui donner une étoile sur GitHub ! ⭐**
-
-Fait avec ❤️ par [Guiltek](https://guiltek.com)
-
-[🔝 Retour en haut](#-serveur-mcp-dolibarr)
-
-</div>
+Désactiver le module retire automatiquement la permission, les constantes et les menus.
+Supprimer le dossier `htdocs/custom/mcpserver/` enlève le code ; aucune table n'étant créée,
+il ne reste aucun résidu en base.

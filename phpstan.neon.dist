@@ -1,0 +1,22 @@
+parameters:
+    level: 9
+    paths:
+        - core
+        - lib
+        - admin
+        - mcp
+    excludePaths:
+        - vendor
+    bootstrapFiles:
+        - dev/phpstan-bootstrap.php
+    scanDirectories:
+        - ../../core
+        - ../../societe
+        - ../../user
+        - ../../compta
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # Fonctions Dolibarr definies dans main.inc.php (hors scanDirectories).
+        - '#^Function llxHeader not found\.$#'
+        - '#^Function llxFooter not found\.$#'

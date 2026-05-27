@@ -1,0 +1,53 @@
+services:
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: dolibarr
+      MARIADB_USER: dolibarr
+      MARIADB_PASSWORD: dolibarr
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  composer:
+    image: composer:2
+    working_dir: /app
+    volumes:
+      - ../:/app
+    command: install --ignore-platform-reqs --no-interaction
+    profiles: ["tools"]
+
+  dolibarr:
+    image: dolibarr/dolibarr:21
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DOLI_DB_HOST: db
+      DOLI_DB_NAME: dolibarr
+      DOLI_DB_USER: dolibarr
+      DOLI_DB_PASSWORD: dolibarr
+      DOLI_DB_ROOT_LOGIN: root
+      DOLI_DB_ROOT_PASSWORD: rootpass
+      DOLI_ADMIN_LOGIN: admin
+      DOLI_ADMIN_PASSWORD: admin
+      DOLI_URL_ROOT: http://localhost:8080
+      DOLI_INIT_DEMO: "1"
+      DOLI_COMPANY_NAME: "Demo MCP"
+      DOLI_COMPANY_COUNTRYCODE: "FR"
+      DOLI_MODULES: "Societe,Facture,Stock"
+    ports:
+      - "8080:80"
+    volumes:
+      - ../:/var/www/html/custom/mcpserver
+      - ./docker-init.d:/var/www/scripts/docker-init.d
+      - doc_data:/var/www/documents
+
+volumes:
+  db_data:
+  doc_data:
