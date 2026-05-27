@@ -1,24 +1,13 @@
-node_modules/
-dist/
-.env
-.DS_Store
-coverage/
-.vscode/
+# Composer
+/vendor/
+composer.phar
+
+# Dolibarr / runtime
 *.log
-logs/
+/mcp/sessions/
 
-# Temporary test files
-test-*.js
-*-test.js
-*.tmp
-*.temp
-
-# Swagger/API temporary docs
-swagger-*.json
-*-endpoints.txt
-mcp-test.json
-
-# Temporary documentation
-*-V2.md
-IMPLEMENTATION-SUMMARY.md
-.cleanup-notes.md
+# OS / éditeurs
+.DS_Store
+.idea/
+.vscode/
+*.swp
